@@ -16,7 +16,7 @@ BRANCH=""
 # 160_branch_mgh
 # $ get_git_branch 158
 # 158_branch
-function get_git_branch36()
+function get_git_branch()
 {
     local branch="$1"
     if [[ -z "$branch" ]]
