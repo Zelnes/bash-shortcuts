@@ -1,5 +1,6 @@
 **How to use**
 To use the bash functions, simply source bash/bash_functions.sh in your ~/.bashrc
+Use `realpath bash/bash_functions.sh` to get the file to source in the ~/.bashrc
 
 Also, get in ttyecho/ and :
 	$ make ttyecho
