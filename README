@@ -1,0 +1,8 @@
+**How to use**
+To use the bash functions, simply source bash/bash_functions.sh in your ~/.bashrc
+
+Also, get in ttyecho/ and :
+	$ make ttyecho
+	$ sudo make install
+
+More info on it website : http://www.humbug.in/2010/utility-to-send-commands-or-data-to-other-terminals-ttypts/
