@@ -7,3 +7,6 @@ Also, get in ttyecho/ and :
 	$ sudo make install
 
 More info on it website : http://www.humbug.in/2010/utility-to-send-commands-or-data-to-other-terminals-ttypts/
+
+**Steps after PULL**
+After a 'git pull' do a source_all
