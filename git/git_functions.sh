@@ -205,7 +205,91 @@ gchekcout()
     git checkout "$branch"
 }
 
-# Execute a gst then a git diff on the file(s)
-# See argument list to execute different actions
-# TODO
-# gstd()
+# This function retrieves the list of modified files
+# It's first argument is the 'git status' mode (option u)
+# and the others arguments are the numbers that represents
+# the files to keep in the list
+# If an argument is not a number or 0, it is ignored 
+# The index starts at 1 to N
+get_git_modified_files()
+{
+    local _mfiles=$(git status -s -u${1} | awk "{print \$2}")
+    shift 1
+    local _aMfiles=($_mfiles)
+    local _finalFiles=""
+
+    if [[ $# -eq 0 ]]
+    then
+        echo ${_mfiles}
+    else
+        for i in $@
+        do
+            if [[ "$i" =~ ^[0-9]+$ && "$i" -ne 0 ]]
+            then
+                _finalFiles+="${_aMfiles[$(($i - 1))]} "
+            fi
+        done
+        echo ${_finalFiles}
+    fi
+}
+
+# Execute a 'git status -s' then a git diff on the file(s)
+# If the given argument is a number, then the file 
+# shown on the corresponding line is diff'ed
+# If no argument is given, git diff is performed
+# If non-number argument is given, nothing is done
+# Only the first parameter is taken into account
+gstd()
+{
+    local _mfiles
+
+    # The mode for the status is 'no' because we only want tracked files to be diff'ed
+    _mfiles=$(get_git_modified_files no $@)
+
+    if [[ ! -z "${_mfiles}" ]]
+    then
+        git diff ${_mfiles}
+    fi
+}
+
+# Execute a 'git checkout' on the specified file(s), represented
+# by their gst's index (see get_git_modified_files's doc)
+# 
+gstc()
+{
+    if [[ $# -eq 0 ]]
+    then
+        echo "Missing argument. Exiting..."
+        return 1
+    fi
+
+    local _mfiles
+
+    # The mode for the status is 'no' because we only want tracked files to be check'ed out
+    _mfiles=$(get_git_modified_files no $@)
+
+    if [[ ! -z "${_mfiles}" ]]
+    then
+        git checkout ${_mfiles}
+    fi
+}
+
+
+gadd()
+{
+    if [[ $# -eq 0 ]]
+    then
+        echo "Missing argument. Exiting..."
+        return 1
+    fi
+
+    local _mfiles
+
+    # The mode is 'normal' because we possibly want to add any file
+    _mfiles=$(get_git_modified_files normal $@)
+
+    if [[ ! -z "${_mfiles}" ]]
+    then
+        git add ${_mfiles}
+    fi
+}
