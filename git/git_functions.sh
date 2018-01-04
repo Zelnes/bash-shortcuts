@@ -213,7 +213,7 @@ gchekcout()
 # The index starts at 1 to N
 get_git_modified_files()
 {
-    local _mfiles=$(git status -s -u${1} | awk "{print \$2}")
+    local _mfiles=$(git status -s -u${1} | awk "{print \$NF}")
     shift 1
     local _aMfiles=($_mfiles)
     local _finalFiles=""
