@@ -116,7 +116,7 @@ alias glog='git log --oneline -n '
 
 # Prints git status with short output (by default)
 # Can be completed with 'git status' other arguments
-alias gst='git status -s'
+alias gst='git -c color.status=always status -s | awk "{print NR\"\t\"\$0}"'
 
 # Commits the last changes with a prefix for SDK commits
 # It will execute this command : 
