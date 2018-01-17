@@ -17,6 +17,11 @@ function color_text()
     echo -ne "\001\e[38;5;$2m\002$1\001\e[0m\002"
 }
 
+function set_title()
+{
+    echo -ne "\033]0;${1}\007"
+}
+
 function update_PS1()
 {
     # Update History
@@ -40,6 +45,7 @@ function update_PS1()
 
     local _txt_color="\001\e[38;5;110m\002"
     PS1='${my_userPS1}${my_datePS1}${my_gitPS1}${my_svnPS1}:${my_pwdPS1}$ '
+    set_title ${_my_pwdPS1}
 }
 
 # Change directory to the previous one
