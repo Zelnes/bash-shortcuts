@@ -17,9 +17,42 @@ function color_text()
     echo -ne "\001\e[38;5;$2m\002$1\001\e[0m\002"
 }
 
-function set_title()
+# The title state
+TITLE_STATE="reset"
+
+# Function that sets effectively the title
+function _echo_title()
 {
     echo -ne "\033]0;${1}\007"
+}
+
+# Changes the terminal title
+# The first argument set the title state
+# If it is "static" then the title won't change
+# If it is "reset" then the title we'll be reset
+#   and will be updatable with a dynamic change
+# If it is "dynamic" then the title will change
+#   only if it was not in a static state
+function _set_title()
+{
+    case "$1" in
+        static)
+            TITLE_STATE="static";
+            _echo_title "$2";;
+        reset)
+            TITLE_STATE="reset";;
+        *);;
+    esac
+
+    if [[ ${TITLE_STATE} = "reset" ]]; then
+        _echo_title "$2"
+    fi
+}
+
+# Changes the terminal title statically
+function set_static_title()
+{
+    _set_title static "$1"
 }
 
 function update_PS1()
@@ -45,7 +78,7 @@ function update_PS1()
 
     local _txt_color="\001\e[38;5;110m\002"
     PS1='${my_userPS1}${my_datePS1}${my_gitPS1}${my_svnPS1}:${my_pwdPS1}$ '
-    set_title ${_my_pwdPS1}
+    _set_title dynamic ${_my_pwdPS1}
 }
 
 # Change directory to the previous one
