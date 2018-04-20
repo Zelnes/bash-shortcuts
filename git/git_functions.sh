@@ -1,11 +1,17 @@
 
+CAN_USE_GIT_COMPLETION="n"
+[ -f /usr/share/bash-completion/completions/git ] && {
+    source /usr/share/bash-completion/completions/git
+    CAN_USE_GIT_COMPLETION="y"
+}
+
 BRANCH=""
 
 # This function gets a branch name
 # If a parameter is given, then the branch returned
 # is the first that contains the parameter (can be regex)
-# For example : 
-# $ git branch -a 
+# For example :
+# $ git branch -a
 # master
 # 160_branch
 # 160_branch_mgh
@@ -23,7 +29,7 @@ function get_git_branch()
     then
         git branch -a 2> /dev/null | sed -e '/^[^*]/d' -e 's/* //'
     else
-        git branch -a | grep -E "$branch" | grep -oE '[^ ]+$' | sed -r -e 's#remotes/origin/##' | head -n1
+        git branch -a | grep -E "$branch" | grep -oE '[^ ]+$' | sed -r -e 's#remotes/##' | head -n1
     fi
 }
 
@@ -98,7 +104,7 @@ git_cd_n()
 }
 
 # Change directory to git top level directory
-# Example : /home/me/my_git is a git directory, ie it contains .git 
+# Example : /home/me/my_git is a git directory, ie it contains .git
 # $ cd /home/me/my_git
 # $ cd src/test # --> pwd : /home/me/my_git/src/test
 # $ gcd # --> pwd : /home/me/my_git
@@ -113,13 +119,31 @@ alias pgcd='git_cd_n 2'
 # Prints one-lined log. Must be used with it's first argument being a number
 # Example : glog 2 # And can be completed with 'git log' other arguments
 alias glog='git log --oneline -n '
+[ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete glog _git_log
 
 # Prints git status with short output (by default)
 # Can be completed with 'git status' other arguments
 alias gst='git -c color.status=always status -s | awk "{print NR\"\t\"\$0}"'
 
+get_git_ticket_ref()
+{
+    if [[ -z "$1" ]]; then
+        b=`get_git_branch`
+    else
+        b=${1}
+    fi
+    echo ${b} | grep -o -E "[A-Z]+-[0-9]+"
+}
+
+gplog()
+{
+    local _issue=`get_git_ticket_ref`
+    git log --grep="${_issue}" $@
+}
+[ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gplog _git_log
+
 # Commits the last changes with a prefix for SDK commits
-# It will execute this command : 
+# It will execute this command :
 # $ gcommit "My message" I want to commit
 # git commit -m "SDK-160 My message I want to commit"
 # if my current branch is story/SDK-160-anything
@@ -131,7 +155,7 @@ gcommit()
     then
         if [[ ! -z "$1" ]]
         then
-            local _issue=`echo $branch | sed -r 's/.*[^a-zA-Z]([a-zA-Z]+-[0-9]+).*/\1/'`
+            local _issue=`get_git_ticket_ref ${branch}`
             # echo $_issue
             local _cmd="git commit -m \"$_issue $@\""
             echo $_cmd
@@ -145,6 +169,7 @@ gcommit()
         return 1
     fi
 }
+[ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gcommit _git_commit
 
 # Sends and executes a command on all the terms opened
 # It needs ttyecho
@@ -154,7 +179,7 @@ send_command_to_all_terminal()
         echo "ttyecho not found. Exiting..."
         return 1
     fi
-    
+
     local device=`for p in $(pidof bash); do readlink -f /proc/$p/fd/0; done | sort -u`
 
     for d in $device
@@ -165,6 +190,12 @@ send_command_to_all_terminal()
         fi
     done
     # ttyecho -n
+}
+
+# Source the bashrc in the home directory
+source_home()
+{
+    source ~/.bashrc
 }
 
 # Resource all terms opened with the ~/.bashrc
@@ -181,22 +212,32 @@ source_all()
 # And the paramater given is the one used to set the branch to push
 gpush()
 {
+    local force=""
+    if [[ "$1" = "-f" ]]; then
+        force="-f"
+        shift
+    elif [[ "$2" = "-f" ]]; then
+        force="-f"
+    fi
+
     local branch=`get_git_branch "$1"`
     if [[ -z "$branch" ]]
     then
         echo "No branch found for pattern $1"
         return 1
     fi
-    cmd="git push origin $branch:`git rev-parse --symbolic-full-name $branch@{upstream} | sed -r 's#.*/origin/##'`"
+    shift
+    cmd="git push ${force} $@ origin $branch:`git rev-parse --symbolic-full-name $branch@{upstream} | sed -r 's#.*/origin/##'`"
     echo $cmd
     eval $cmd
 }
+[ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gpush _git_push
 
 # Same behaviour as get_git_branch to retrieve a branch name
 # Then checkouts on the given branch
-gchekcout()
+gcheckout()
 {
-    local branch=`get_git_branch "$1"`
+    local branch=`get_git_branch "$1" | sed -r 's#.*origin/##'`
     if [[ -z "$branch" ]]
     then
         echo "No branch found for pattern $1"
@@ -204,12 +245,13 @@ gchekcout()
     fi
     git checkout "$branch"
 }
+[ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gcheckout _git_checkout
 
 # This function retrieves the list of modified files
 # It's first argument is the 'git status' mode (option u)
 # and the others arguments are the numbers that represents
 # the files to keep in the list
-# If an argument is not a number or 0, it is ignored 
+# If an argument is not a number or 0, it is ignored
 # The index starts at 1 to N
 get_git_modified_files()
 {
@@ -234,7 +276,7 @@ get_git_modified_files()
 }
 
 # Execute a 'git status -s' then a git diff on the file(s)
-# If the given argument is a number, then the file 
+# If the given argument is a number, then the file
 # shown on the corresponding line is diff'ed
 # If no argument is given, git diff is performed
 # If non-number argument is given, nothing is done
@@ -254,7 +296,7 @@ gstd()
 
 # Execute a 'git checkout' on the specified file(s), represented
 # by their gst's index (see get_git_modified_files's doc)
-# 
+#
 gstc()
 {
     if [[ $# -eq 0 ]]
@@ -271,7 +313,15 @@ gstc()
     if [[ ! -z "${_mfiles}" ]]
     then
         git checkout ${_mfiles}
+        echo "Checked out : ${_mfiles}"
     fi
+}
+
+# Returns the names of the given index, based on gst output
+gstn()
+{
+    # The mode is 'normal' because we possibly want to add any file
+    get_git_modified_files normal $@
 }
 
 
@@ -291,5 +341,17 @@ gadd()
     if [[ ! -z "${_mfiles}" ]]
     then
         git add ${_mfiles}
+        echo "Added : ${_mfiles}"
     fi
+}
+
+# Perform a git commit --amend
+# Eventually, if $1 is -n then it does it with --no-edit option
+gamend()
+{
+    local no
+    if [[ "${1}" = "-n" ]]; then
+        no="--no-edit"
+    fi
+    git commit --amend ${no}
 }
