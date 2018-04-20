@@ -1,4 +1,9 @@
-source "${BASH_SOURCE%/*}/../git/git_functions.sh"
+bash_path=$(realpath $(dirname ${BASH_SOURCE[0]})/..)
+
+TMP=${bash_path}/tmp
+mkdir -p ${TMP}
+
+source "${bash_path}/git/git_functions.sh"
 
 PROMPT_COMMAND='update_PS1'
 
@@ -19,6 +24,7 @@ function color_text()
 
 # The title state
 TITLE_STATE="reset"
+TITLE_FILE=${TMP}/$$
 
 # Function that sets effectively the title
 function _echo_title()
@@ -35,32 +41,30 @@ function _echo_title()
 #   only if it was not in a static state
 function _set_title()
 {
-    case "$1" in
-        static)
-            TITLE_STATE="static";
-            _echo_title "$2";;
-        reset)
-            TITLE_STATE="reset";;
-        *);;
-    esac
-
-    if [[ ${TITLE_STATE} = "reset" ]]; then
-        _echo_title "$2"
+    if [[ ! -f ${TITLE_FILE} ]]; then
+        _echo_title "$1"
     fi
 }
 
 # Changes the terminal title statically
 function set_static_title()
 {
-    _set_title static "$1"
+    echo "$1" >${TITLE_FILE}
+    _echo_title "$(cat ${TITLE_FILE})"
+}
+
+function unset_static_title()
+{
+    rm -f ${TITLE_FILE}
 }
 
 function update_PS1()
 {
+    __status=$?
     # Update History
     history -a
     history -n
-    
+
     # Update functions
     get_datePS1
     get_gitPS1
@@ -78,7 +82,7 @@ function update_PS1()
 
     local _txt_color="\001\e[38;5;110m\002"
     PS1='${my_userPS1}${my_datePS1}${my_gitPS1}${my_svnPS1}:${my_pwdPS1}$ '
-    _set_title dynamic ${_my_pwdPS1}
+    _set_title "${_my_pwdPS1}"
 }
 
 # Change directory to the previous one
