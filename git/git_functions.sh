@@ -40,6 +40,11 @@ function get_git_branch()
 # If the repo is not 'clean', the "git" prompt color is reversed
 function get_gitPS1()
 {
+    [ "${NO_GIT_PS1}" = "y" ] && {
+        my_gitPS1=""
+        return 0
+    }
+
     git rev-parse --git-dir &>/dev/null
     local __st=$?
     if [[ $__st -eq 0 ]]
