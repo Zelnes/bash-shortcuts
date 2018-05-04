@@ -1,0 +1,11 @@
+set $spotify __TO_REPLACE__COMMON_BIN/sp
+bindsym Ctrl+F1 exec $spotify play
+bindsym Ctrl+F2 exec $spotify prev
+bindsym Ctrl+F3 exec $spotify next
+
+# Bind Mute/Unmute
+bindsym XF86AudioMute exec updateVolumeApp m Spotify
+# Bind Volume +
+bindsym XF86AudioRaiseVolume exec updateVolumeApp + Spotify
+# Bind Volume -
+bindsym XF86AudioLowerVolume exec updateVolumeApp - Spotify

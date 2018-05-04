@@ -1,0 +1,77 @@
+#!/bin/bash
+
+first=1
+numberDiscard=1
+
+# Spotify utils
+# SP
+# Update Volume Application util
+# UPDATE_VOLUME
+
+function construct-json {
+	local name="$1"
+	local text="$2"
+	local color="$3"
+
+	echo -n "{"
+	echo -n 	"\"name\":\"$name\","
+	echo -n 	'"markup":"none",'
+	echo -n 	"\"color\":\"$color\","
+	echo -n 	"\"full_text\":\"$text\""
+	echo -n "}"
+}
+
+function spotify-status-color {
+	local status=$("${SP}" status)
+	local color="#FFFFFF"
+	[ "$status" = "Paused" ] && color="#FFFF00"
+	echo -n "$color"
+}
+
+function spotify-part {
+	local updateVolumeApp="${1}"; shift
+	local volume spotify
+
+	spotify=$("${SP}" current | sed -r 's/^Artist[ ]+//; s/^Title[ ]+/ - /; /^Album/d' | tr -d '\n')
+	[ ${PIPESTATUS} -eq 1 ] && return 0
+
+	volume=$("${UPDATE_VOLUME}" gm Spotify)
+	[ "${volume}" = "no" ] \
+	  && volume=$("${UPDATE_VOLUME}" g Spotify) \
+	  || volume="mute wh"
+
+	construct-json "Spotify" "${spotify} (${volume})" "$(spotify-status-color)"
+}
+
+function main {
+	local conf="${1}"; shift
+	UPDATE_VOLUME="${1}"; shift
+	SP="${1}"; shift
+	local spotify
+
+	# i3status | while :
+	i3status -c "${conf}" | while :
+	do
+		read line
+		[[ ${first} -le 2 ]] && {
+			first=$(($first + 1))
+			echo ${line}
+			continue
+		}
+
+		if ! pidof -c spotify &>/dev/null ; then
+		{
+			echo ${line}
+		}
+		else
+		{
+			spotify="${line:0:$((${numberDiscard} - 1))}[$(spotify-part),${line:${numberDiscard}}"
+
+			echo "${spotify}" || exit 1
+		}
+		fi
+		[[ ${numberDiscard} -eq 1 ]] && numberDiscard=2
+	done
+}
+
+main $@
