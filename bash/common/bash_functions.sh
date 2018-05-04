@@ -3,7 +3,7 @@ bash_path=$(realpath $(dirname ${BASH_SOURCE[0]})/..)
 TMP=${bash_path}/tmp
 mkdir -p ${TMP}
 
-source "${bash_path}/git/git_functions.sh"
+# source "${bash_path}/git/git_functions.sh"
 
 PROMPT_COMMAND='update_PS1'
 
