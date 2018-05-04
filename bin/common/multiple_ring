@@ -1,0 +1,42 @@
+#!/bin/bash
+
+fichier_nb_ring=/home/mgh/docs/data/nb_ring
+
+if [ -f $fichier_nb_ring ]; then
+	max_ring=`cat $fichier_nb_ring | sed 's/.*=//'`
+else
+	max_ring=3
+fi
+
+_success=/home/mgh/docs/data/smw_coin.wav
+_failure=/home/mgh/docs/data/smw_kick.wav
+
+if [ $# -eq 0 ]; then
+	sound=${_success}
+else
+	re='^[0-9]+$'
+	if ! [[ $1 =~ $re ]] ; then
+		echo "Usage : $0 {0,!=0}"
+		echo "By default, will play success sound"
+		return 1
+	fi
+	if [ "$1" -eq 0 ]; then
+		sound=${_success}
+	else
+		sound=${_failure}
+	fi
+fi
+
+if [[ $# -gt 1 ]]; then
+	code="$1"
+	title="$2"
+	shift 2
+	[[ ${code} -eq 0 ]] && img="o.O'" || img="T_T"
+	notify-send "${title}" "${@} : ${code}\n${img}"
+fi
+
+for i in $(seq 1 $max_ring)
+do
+	# paplay /usr/share/sounds/purple/alert.wav
+	paplay ${sound}
+done

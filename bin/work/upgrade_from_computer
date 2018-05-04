@@ -1,0 +1,3 @@
+#!/bin/sh
+
+upgrade tftp://192.168.1.100/openwrt-nb6v-main

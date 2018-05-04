@@ -1,0 +1,111 @@
+#!/bin/bash
+
+usage() {
+	local prog="${BASH_SOURCE[0]}"
+	echo "${prog} {+,-,m,g} [app_name]"
+	echo "   app_name is Spotify by default"
+	echo "   + :  Augment the volume from 5%"
+	echo "   - :  Lower the volume from 5%"
+	echo "   m :  Toggle the mute state"
+	echo "   g :  Get the volume state, in percent"
+	echo "   gm : Get the mute state of the app. 'yes' or 'no'"
+	echo "   custom : Search for the custom parameters."
+	echo "    Example : ${prog} custom Spotify Mute"
+	echo "              Will return the line with Mute for Spotify"
+}
+
+error() {
+	>&2 usage
+	exit 1
+}
+
+updateVolume() {
+	pactl set-sink-input-volume "$(search-app-sink "$1")" "$2"
+}
+
+toggleMute() {
+	pactl set-sink-input-mute "$(search-app-sink "$1")" toggle
+}
+
+getVolume() {
+	search-app-volume "$1"
+}
+
+main() {
+	# Todo : Truc pour le Mute
+	local app_name="${2:-Spotify}"
+
+	if [[ "$#" -lt 1 ]]; then
+		error
+	fi
+
+	case "$1" in
+		+) updateVolume "${app_name}" "+5%";;
+		-) updateVolume "${app_name}" "-5%";;
+		m) toggleMute   "${app_name}";;
+		g) getVolume    "${app_name}";;
+		gm) search-app-mute "${app_name}";;
+		custom) shift; search-info $@;;
+		h|help) usage; exit 0;;
+		*) error;;
+	esac
+}
+
+search-app-sink() {
+	search-info "$1" "Sink Input #[0-9]+" 3 2
+}
+
+search-app-volume() {
+	search-info "$1" "Volume" 5 0
+}
+
+search-app-mute() {
+	search-info "$1" "Mute" 2 0
+}
+
+# $1 : Application to look for
+# $2 : Pattern to look for
+# $3 : field to retrieve
+# $4 : Number of char to discard from the begining of the matching result
+search-info() {
+	local app_name="$1"; shift
+	local pattern_match="$1"; shift
+	local field_num="$1"; shift
+	local field_rank="$1"; shift
+
+	pactl list sink-inputs | awk \
+	  -v app_name="${app_name}" \
+	  -v pattern_match="${pattern_match}" \
+	  -v field_num="${field_num}" \
+	  -v field_rank="${field_rank}" \
+	  '
+		BEGIN{
+			Number=0
+			app_name="\""app_name"\""
+			found=0
+		}
+
+		{
+			where=match($0, pattern_match)
+			if(where != 0)
+			{
+				Number=substr($field_num, field_rank)
+				next
+			}
+			if($1 == "application.name" && $3 == app_name)
+			{
+				found=1
+				exit 0
+			}
+		}
+
+		END{
+			if(found == 1)
+			{
+				print Number
+			}
+		}
+	  '
+}
+
+main $@

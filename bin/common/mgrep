@@ -1,0 +1,199 @@
+#!/bin/bash
+
+function usage(){
+	printf "Usage for $0 :\n"
+	printf "\t-C INT      : Context \n"
+	printf "\t-i          : Ignore case research\n"
+	printf "\t-w          : If specified, whole word will be searched (\\\b) \n"
+	printf "\t-d BASE_DIR : If specified, the BASE_DIR will be replaced with a smaller text value in the files containing the grepped result \n"
+	printf "\t-e DIR_NAME : Adds the dir to the exclude dir list\n"
+	printf "\t-k DIR_NAME : Keeps the dir if it was in the exclude dir list\n"
+	printf "\t--git-ign   : Uses the .gitignore file to exclude dir from research\n"
+	printf "\t-p          : Prints the variables contents \n"
+	printf "\t-pe         : Prints the variables contents and exits\n"
+	printf "\t-o OUT_FILE : If given, results will also be kept in OUT_FILE file. By default it uses the time when the command is launched\n"
+	printf "\t--subl      : If given, the default output file will be open in sublime text editor\n"
+	printf "\t--auto-save : If given, there will be an auto save file\n"
+	printf "\t-h          : Prints this message\n"
+	printf "This script will print out files modified for a certain amount of commit\n"
+	printf "Commits must be grepped following a pattern (might be empty)\n"
+}
+
+if [ $# -eq 0 ]; then
+	usage
+	exit 0
+fi
+
+perso_funcs="$(realpath ~/docs/shared/bash_shortcuts/bash/personal_functions.sh)"
+
+if [[ -f ${perso_funcs} ]]; then
+	source ${perso_funcs}
+else
+	>&2 echo "No ${perso_funcs} found"
+fi
+
+log_number=20;
+log_pattern="";
+
+# Whole word research
+wwr=""
+
+# BASE_DIR research, with sed, and value
+bds=" | grep -v Fichier "
+bdv=""
+
+# If -d option was given
+dwg=""
+
+# Grep Context Value
+gcv=""
+
+# Pattern to look for
+pat=""
+
+# Ignore case research
+icr=""
+
+# Exclude Dir List
+edl=""
+
+add_exclude_dir()
+{
+	edl="${edl} --exclude-dir=\"${1}\""
+}
+
+add_exclude_file()
+{
+	edl="${edl} --exclude=\"${1}\""
+}
+
+# Keep Dir List
+kdl=""
+
+add_keep_dir()
+{
+	kdl="${kdl} ${1}"
+}
+
+# Git Ignore File
+gif=""
+
+# Print Param and Exit
+ppe=""
+
+# Output File Name
+mkdir -p /home/mgh/researchs/
+tee_cmd="tee --append "
+auto_save_file="/home/mgh/researchs/$(date +%D_%T | sed -r 's/[/:]/-/g').research"
+ofn=""
+
+# Open Sublime Text
+ost=""
+
+while true ; do
+	if [ $# -eq 0 ]; then
+		break
+	fi
+    case "$1" in
+        -h|--help|\?) usage;
+            exit 0;;
+        -w) wwr="\b";
+			shift;;
+        -i) icr="-i";
+			shift;;
+		-d) bdv=`realpath $(echo ${2} | sed -r 's#/$##')`
+			bds=`echo ${bds} " | sed -e 's#${bdv}#\\$lbgf#'"`
+			dwg="y";
+			add_keep_dir "${2}"
+			shift 2;;
+		-C) gcv="-C"${2}
+			shift 2;;
+		-e) add_exclude_dir "${2}"
+			shift 2;;
+		--git-ign)
+			_git_file=$(git_cd_n && pwd)/.gitignore
+			if [[ -f ${_git_file} ]]; then
+				for i in $(cat ${_git_file} | sed 's,^/,,')
+				do
+					if [[ -d "$i" ]]; then
+						add_exclude_dir "${i}"
+					fi
+				done
+				add_exclude_dir ".git"
+				edl="${edl} --exclude-from=\"${_git_file}\""
+			fi
+ 			shift;;
+		-k) add_keep_dir "${2}"
+			shift 2;;
+		-p) ppe="true"
+			shift;;
+		-pe)
+			ppe="true_exit"
+			shift;;
+		-o) ofn="${ofn} ${2}"
+			shift 2;;
+		--subl) ost="y"
+			shift;;
+		--auto-save) ofn="${auto_save_file} ${ofn}"
+			shift;;
+		-*) echo "Unkwown option ${1}"
+			shift;;
+        *)  pat="$1";
+			shift;;
+    esac
+done
+
+for dir in ${kdl}
+do
+	edl=$(echo ${edl} | sed "s, --exclude-dir=\"${dir}\",,")
+done
+
+for fil in ${ofn}
+do
+	add_exclude_file ${fil}
+done
+
+if [[ ! "${ppe}" =~ .*exit && ! -z "${ofn}" ]]; then
+	tee_cmd="${tee_cmd} ${ofn}"
+	echo "Output will be saved in ${ofn}"
+fi
+
+if [[ "${ppe}" =~ true.* ]]; then
+	echo '${wwr} : ' ${wwr} | ${tee_cmd}
+	echo '${bds} : ' ${bds} | ${tee_cmd}
+	echo '${bdv} : ' ${bdv} | ${tee_cmd}
+	echo '${gcv} : ' ${gcv} | ${tee_cmd}
+	echo '${pat} : ' ${pat} | ${tee_cmd}
+	echo '${icr} : ' ${icr} | ${tee_cmd}
+	echo '${edl} : ' ${edl} | ${tee_cmd}
+	echo '${kdl} : ' ${kdl} | ${tee_cmd}
+	echo '${ppe} : ' ${ppe} | ${tee_cmd}
+	echo '${ofn} : ' ${ofn} | ${tee_cmd}
+	if [[ "${ppe}" =~ .*exit ]]; then
+		exit 0
+	fi
+fi
+
+cmd="grep ${gcv} ${icr} ${edl} --color=always -rn -E \"${wwr}${pat}${wwr}\" ${bdv} 2>/dev/null ${bds}| ${tee_cmd}"
+eval ${cmd}
+
+if [ "${dwg}" = "y" ]; then
+	tty_=$(readlink -f /proc/${PPID}/fd/0)
+	echo ""
+	echo "lbgf=${bdv}"
+	# ttyecho -n ${tty_} "lbgf=${bdv}"
+fi
+
+if [[ ! -z "${ofn}" ]]; then
+	sed -i -r 's/\x1B\[K//g; s/\x1B\[01;/\x1B\[/g' ${ofn}
+fi
+
+if [[ "${ost}" = "y" ]]; then
+	subl $(echo ${ofn} | awk '{print $1}')
+fi
+
+
+if [[ ! -z "${ofn}" ]]; then
+	echo -e "\nOutput was saved in ${ofn}"
+fi
+exit 0

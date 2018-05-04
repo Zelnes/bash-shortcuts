@@ -1,0 +1,118 @@
+#!/bin/bash
+ 
+function usage(){
+	printf "Usage for $0 :\n"
+	printf "\t-n nb_log   : Number of commits to treat\n"
+	printf "\t-b branch   : Branch on which commits are looked for\n"
+	printf "\t-p pattern  : Pattern used to grep the commits message (SDK-XXX for example)\n"
+	printf "\t--file-only : Will only print files modified\n"
+	printf "\t--log-only  : Logs only\n"
+	printf "\t-h          : Prints this message\n"
+	printf "This script will print out files modified for a certain amount of commit\n"
+	printf "Commits must be grepped following a pattern (might be empty)\n"
+}
+ 
+log_number=20;
+log_pattern="";
+# File Only Wanted
+fow=""
+# Brabch To Search
+bts=""
+# Log Only Wanted
+low=""
+
+if [ $# -eq 0 ]; then
+	usage;
+	exit 0;
+fi
+
+perso_funcs="$(realpath ~/docs/shared/bash_shortcuts/bash/personal_functions.sh)"
+
+if [[ -f ${perso_funcs} ]]; then
+	source ${perso_funcs}
+else
+	>&2 echo "No ${perso_funcs} found"
+fi
+
+# Takes two arguments:
+# The first one is the text that needs to be colored
+# The second one is the color to use
+# More info at https://misc.flogisoft.com/bash/tip_colors_and_formatting
+function color_text()
+{
+    printf "\e[38;5;%sm%s\e[0m" "$2" "$1"
+}
+
+check_args()
+{
+	if [[ $1 -lt $2 ]]; then
+		usage
+		1>&2 echo "Failed for option $3"
+		exit 0
+	fi
+}
+
+while true ; do
+    case "$1" in
+        -h) usage;
+            exit 0;;
+        -n) check_args $# 2 $1
+        	log_number="$2";
+            shift 2;;
+        -b) check_args $# 2 $1
+        	bts="$2";
+            shift 2;;
+		-p) check_args $# 2 $1
+			log_pattern="$2"
+			shift 2;;
+		--file-only) fow="y"
+			tmp_file=/tmp/__diffiles_tmp
+			rm -f ${tmp_file}
+			shift;;
+		--log-only) low="y"
+			color_log="--color=always"
+			shift;;
+        *) [[ ! -z "$1" ]] && 1>&2 echo "Unknown value/option '$1'"
+		   shift; break;;
+    esac
+done
+
+branch=$(get_git_branch "${bts}")
+
+# echo "log_number  : "$log_number
+# echo "log_pattern : "$log_pattern
+
+logs=$(git log ${branch} --oneline -n${log_number} ${color_log} 2>/dev/null)
+if [[ -z "${logs}" ]]; then
+	1>&2 echo "Not a git repo, exiting..."
+	exit 1
+fi
+
+commits=$(printf "%s\n" "${logs}" | grep "$log_pattern")
+if [[ -z "${commits}" ]]; then
+	echo "No commit found for the given pattern"
+	exit 0
+fi
+
+if [[ "${low}" = "y" ]]; then
+	printf "%s\n" "${commits}"
+	exit 0
+fi
+
+while read -r line;do
+	commit_id=$(echo $line | sed -r 's/ .*//');
+	if [[ "${fow}" != "y" ]]; then
+		echo $(color_text "Commit : $line" 141)
+		git diff-tree --no-commit-id --name-only -r $commit_id
+		echo $(color_text "===========" 9)
+	else
+		git diff-tree --no-commit-id --name-only -r $commit_id >>${tmp_file}
+	fi
+done <<<$commits
+
+if [[ "${fow}" = "y" ]]; then
+	cat ${tmp_file} | sort -u
+	rm -f ${tmp_file}
+fi
+
+exit 0
