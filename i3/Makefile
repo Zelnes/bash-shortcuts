@@ -56,6 +56,7 @@ install: replace-values
 
 work home:
 	$(QUIET) $(call import-config,$@/config,$(TMP_FILE))
+	$(QUIET) $(call replace-in-file,$(TMP_FILE),$(call upperCase,$@)_BIN,$(shell realpath $(TOPDIR)/bin/$@))
 
 clean:
 	$(QUIET) [ -h "$(TARGET_CONF)" ] && rm "$(TARGET_CONF)"; :
