@@ -1,0 +1,2 @@
+
+exec --no-startup-id __TO_REPLACE__HOME_BIN/enable_touchpad_tapp.sh
