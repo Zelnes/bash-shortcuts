@@ -3,6 +3,8 @@ export SOURCE_FILE
 
 empty=
 space=$(empty) $(empty)
+lowerCase=$(shell echo $(1) | tr '[A-Z]' '[a-z]')
+upperCase=$(shell echo $(1) | tr '[a-z]' '[A-Z]')
 
 TMP_FILE=TMP_FILE
 
