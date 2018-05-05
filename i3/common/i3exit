@@ -4,7 +4,7 @@ current_path=$(dirname $(realpath ${BASH_SOURCE[0]}))
 
 lock() {
     # i3lock -c 151515
-    i3lock -t -i /home/mgh/i3_Screenshot
+    i3lock -t -i "${_FILE}"
 }
 
 _FILE="${1}"; shift
