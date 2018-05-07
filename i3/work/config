@@ -9,3 +9,5 @@ bindsym XF86AudioMute exec updateVolumeApp m Spotify
 bindsym XF86AudioRaiseVolume exec updateVolumeApp + Spotify
 # Bind Volume -
 bindsym XF86AudioLowerVolume exec updateVolumeApp - Spotify
+
+exec --no-startup-id davmail
