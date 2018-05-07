@@ -208,6 +208,6 @@ bindsym $mod+n exec i3-input -F 'rename workspace to "%s"' -P 'New name: '
 bindsym $mod+x move workspace to output right
 
 # bindsym Print exec scrot -s -e 'mv $f /home/mgh/Images/Screenshots/'
-bindsym Print exec scrot '%Y-%m-%d_$wx$h_scrot.png' -e 'mv $f __TO_REPLACE__SCREENSHOT'
+bindsym Print exec scrot '%Y-%m-%d-%T_$wx$h_scrot.png' -e 'mv $f __TO_REPLACE__SCREENSHOT'
 
 exec --no-startup-id nm-applet
