@@ -94,3 +94,8 @@ function update_PS1()
 # $ bcd # --> pwd = /tmp
 # Same as 'cd -' but, for me, faster to type
 alias bcd='cd $OLDPWD'
+
+docker-clean()
+{
+    docker rm $(docker ps -a | awk '/^[^C]/{print $NF}')
+}
