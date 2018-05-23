@@ -150,3 +150,8 @@ correspondant_endif() {
           PCL();
       }' "$@"
 }
+
+docker-clean()
+{
+    docker rm $(docker ps -a | awk '/^[^C]/{print $NF}')
+}
