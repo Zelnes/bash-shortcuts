@@ -54,7 +54,7 @@ function get_gitPS1()
         then
             # If the branch is a SDK, it is cut to print only story/SDK-NUMBER
             # Otherwise, if it's length is greater than 15 it is cut to this length
-            BRANCH=`echo $BRANCH | sed -r 's/(SDK-[0-9]+).*/\1/' | sed -r 's/(.{15}).*/\1/'`
+	    BRANCH=`echo $BRANCH | sed -r 's/((SDK-|ISSUE-#)[0-9]+).*/\1/; t; s/(.{15}).*/\1/'`
         fi
         STATUS=`git status --porcelain`
         if [[ ${#STATUS} -ne 0 ]]
@@ -137,7 +137,7 @@ get_git_ticket_ref()
     else
         b=${1}
     fi
-    echo ${b} | grep -o -E "[A-Z]+-[0-9]+"
+    echo ${b} | grep -o -E "[A-Z]+-#?[0-9]+"
 }
 
 gplog()
