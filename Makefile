@@ -15,3 +15,6 @@ source-final:
 	$(QUIET) $(call CMESSAGE,_B,*** source $$(realpath $(SOURCE_FILE)))
 
 install: source-final
+
+post-install:
+	sort -u $(SOURCE_FILE) -o $(SOURCE_FILE)
