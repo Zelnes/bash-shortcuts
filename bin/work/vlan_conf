@@ -92,7 +92,7 @@ case "$1" in
 		fail_unless_root
 		setup_box_vlan
 		setup_switch_vlan
-		setup_efixo_dns
+		# setup_efixo_dns
 		echo "VLAN correctly configured" >>$status_file
 		;;
 
