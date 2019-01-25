@@ -22,6 +22,11 @@ function color_text()
     echo -ne "\001\e[38;5;$2m\002$1\001\e[0m\002"
 }
 
+function reverse_color_text()
+{
+    echo -ne "\001\e[7m\002$1\001\e[27m\002"
+}
+
 # The title state
 TITLE_STATE="reset"
 TITLE_FILE=${TMP}/$$
@@ -52,6 +57,7 @@ function set_static_title()
     echo "$1" >${TITLE_FILE}
     _echo_title "$(cat ${TITLE_FILE})"
 }
+export -f set_static_title
 
 function unset_static_title()
 {
@@ -77,6 +83,7 @@ function update_PS1()
     my_pwdPS1=`color_text "[${_my_pwdPS1}]" 103`
 
     my_datePS1=`color_text "${my_datePS1}" 244`
+    [ $__status -eq 0 ] || my_datePS1="$(reverse_color_text "$my_datePS1")"
     my_gitPS1=`color_text "${my_gitPS1}" 167`
     my_svnPS1=`color_text "${my_svnPS1}" 128`
 
@@ -94,3 +101,52 @@ function update_PS1()
 # $ bcd # --> pwd = /tmp
 # Same as 'cd -' but, for me, faster to type
 alias bcd='cd $OLDPWD'
+
+alias grep='grep --color=auto'
+
+export EDITOR="$(which subl)"
+
+alias m='emacsclient -nq'
+
+export LESS="-R -M -J -X -F"
+batless() {
+    if which bat &>/dev/null; then
+        bat --color always "$1" | less -R
+    else
+        cat "$1" | less
+    fi
+}
+
+export LESS_TERMCAP_mb=$'\e[01;31m'
+export LESS_TERMCAP_md=$'\e[01;38;5;74m'
+export LESS_TERMCAP_me=$'\e[0m'
+export LESS_TERMCAP_se=$'\E[0m'
+export LESS_TERMCAP_so=$'\E[01;44;33m'
+export LESS_TERMCAP_ue=$'\e[0m'
+export LESS_TERMCAP_us=$'\e[04;38;5;146m'
+
+# $1 : Pattern to match
+# $>1 : files to parse
+correspondant_endif() {
+    local pattern="$1"; shift
+    awk -v pat="$pattern" '
+      BEGIN {
+        another=0;
+        support=0;
+      }
+      function PCL() {
+        printf("[%s:%4.0d]:%s\n", FILENAME, NR, $0);
+      }
+      /^#if/ {
+        if ($0 ~ pat)
+          PCL();
+        else
+          another++;
+      }
+      /^#endif/ {
+        if (another > 0)
+          another--;
+        else
+          PCL();
+      }' "$@"
+}
