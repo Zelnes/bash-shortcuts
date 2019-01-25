@@ -45,7 +45,7 @@ main() {
 		m) toggleMute   "${app_name}";;
 		g) getVolume    "${app_name}";;
 		gm) search-app-mute "${app_name}";;
-		custom) shift; search-info $@;;
+		custom) shift; search-info "$@";;
 		h|help) usage; exit 0;;
 		*) error;;
 	esac
@@ -81,8 +81,10 @@ search-info() {
 	  '
 		BEGIN{
 			Number=0
-			app_name="\""app_name"\""
+			app_name=tolower("\""app_name"\"")
 			found=0
+			matchingFields[0]="application.name"
+			matchingFields[1]="application.process.binary"
 		}
 
 		{
@@ -92,10 +94,14 @@ search-info() {
 				Number=substr($field_num, field_rank)
 				next
 			}
-			if($1 == "application.name" && $3 == app_name)
+			fieldLowered=tolower($3)
+			for(key in matchingFields)
 			{
-				found=1
-				exit 0
+				if($1 == matchingFields[key] && fieldLowered == app_name)
+				{
+					found=1
+					exit 0
+				}
 			}
 		}
 
@@ -108,4 +114,4 @@ search-info() {
 	  '
 }
 
-main $@
+main "$@"
