@@ -28,8 +28,6 @@ perso_funcs="$(realpath ~/docs/shared/bash_shortcuts/bash/personal_functions.sh)
 
 if [[ -f ${perso_funcs} ]]; then
 	source ${perso_funcs}
-else
-	>&2 echo "No ${perso_funcs} found"
 fi
 
 log_number=20;
