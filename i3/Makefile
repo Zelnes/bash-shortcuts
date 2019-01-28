@@ -40,7 +40,7 @@ common: prereq
 	$(QUIET) $(call import-config,common/config,$(TMP_FILE))
 
 replace-values:
-	$(QUIET) $(call replace-in-file,$(TMP_FILE),STATUS,$(shell realpath common/i3statusMGH common/i3status.conf $(TOPDIR)/bin/common/updateVolumeApp $(TOPDIR)/bin/common/sp))
+	$(QUIET) $(call replace-in-file,$(TMP_FILE),STATUS,py3status)
 	$(QUIET) $(call replace-in-file,$(TMP_FILE),EXIT,$(shell realpath common/i3exit) "$(BACKGROUND_FILE)")
 	$(QUIET) $(call replace-in-file,$(TMP_FILE),SCREENSHOT,$(SCREEN_DIR))
 	$(QUIET) $(call replace-in-file,$(TMP_FILE),COMMON_BIN,$(shell realpath $(TOPDIR)/bin/common))
