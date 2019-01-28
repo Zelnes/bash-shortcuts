@@ -22,14 +22,18 @@ BRANCH=""
 # 160_branch_mgh
 # $ get_git_branch 158
 # 158_branch
-function get_git_branch()
+get_git_branch()
 {
-    local branch="$1"
-    if [[ -z "$branch" ]]
+    local br="$1"
+    if [[ -z "$br" ]]
     then
-        git branch -a 2> /dev/null | sed -e '/^[^*]/d' -e 's/* //'
+        git branch 2>/dev/null | sed -n '/^*/s/*[[:blank:]]*//p'
     else
-        git branch -a | grep -E "$branch" | grep -oE '[^ ]+$' | sed -r -e 's#remotes/##' | head -n1
+        # Sed :
+        #  - pattern match br (bash parameter expansion, to prevent char '/' from branch pattern)
+        #  - Only keep what follows the last blank or "remotes/"
+        #  - print the line and exit (the first match only is kept)
+        git branch -a 2>/dev/null | sed -rn "/${br//\//\\/}/{s|.*[[:blank:]]+(remotes/)?||;p;q}"
     fi
 }
 
@@ -38,7 +42,7 @@ function get_git_branch()
 # If yes, retrieves the branch name
 # and then test if the repo have been modified (and needs commit(s))
 # If the repo is not 'clean', the "git" prompt color is reversed
-function get_gitPS1()
+get_gitPS1()
 {
     [ "${NO_GIT_PS1}" = "y" ] && {
         my_gitPS1=""
@@ -60,7 +64,7 @@ function get_gitPS1()
         if [[ ${#STATUS} -ne 0 ]]
         then
             # Reverse 'git' color to show change
-            __git="\001\e[7m\002git\001\e[27m\002"
+            __git="$(reverse_color_text git)"
         else
             __git="git"
         fi
@@ -73,7 +77,7 @@ function get_gitPS1()
 
 # Same as get_gitPS1(), except that nothing is done
 # yet to show if the repo is clean or not
-function get_svnPS1()
+get_svnPS1()
 {
     local __infos=`svn info 2>/dev/null`
     if [[ "$__infos" != "" ]]
@@ -107,6 +111,7 @@ git_cd_n()
         cd $gitD
     fi
 }
+export -f git_cd_n
 
 # Change directory to git top level directory
 # Example : /home/me/my_git is a git directory, ie it contains .git
@@ -142,7 +147,9 @@ get_git_ticket_ref()
 
 gplog()
 {
-    local _issue=`get_git_ticket_ref`
+    local _issue=${1:-$(get_git_ticket_ref)}
+    echo issue : $_issue
+    shift
     git log --grep="${_issue}" $@
 }
 [ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gplog _git_log
@@ -185,7 +192,7 @@ send_command_to_all_terminal()
         return 1
     fi
 
-    local device=`for p in $(pidof bash); do readlink -f /proc/$p/fd/0; done | sort -u`
+    local device=$(for p in $(pidof bash); do readlink -f /proc/$p/fd/0; done | sort -u)
 
     for d in $device
     do
@@ -232,7 +239,8 @@ gpush()
         return 1
     fi
     shift
-    cmd="git push ${force} $@ origin $branch:`git rev-parse --symbolic-full-name $branch@{upstream} | sed -r 's#.*/origin/##'`"
+    local remote=$(git remote | head -n 1)
+    cmd="git push ${force} $@ ${remote} $branch:`git rev-parse --symbolic-full-name $branch@{upstream} | sed -r "s#.*/${remote}/##"`"
     echo $cmd
     eval $cmd
 }
@@ -242,7 +250,8 @@ gpush()
 # Then checkouts on the given branch
 gcheckout()
 {
-    local branch=`get_git_branch "$1" | sed -r 's#.*origin/##'`
+    local remote=$(git remote | head -n 1)
+    local branch=`get_git_branch "$1" | sed -r "s#.*${remote}/##"`
     if [[ -z "$branch" ]]
     then
         echo "No branch found for pattern $1"
@@ -345,7 +354,7 @@ gadd()
 
     if [[ ! -z "${_mfiles}" ]]
     then
-        git add ${_mfiles}
+        git add --verbose ${_mfiles}
         echo "Added : ${_mfiles}"
     fi
 }
