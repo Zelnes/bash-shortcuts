@@ -137,6 +137,7 @@ alias gst='git -c color.status=always status -s | awk "{print NR\"\t\"\$0}"'
 
 get_git_ticket_ref()
 {
+    local b
     if [[ -z "$1" ]]; then
         b=`get_git_branch`
     else
@@ -148,7 +149,7 @@ get_git_ticket_ref()
 gplog()
 {
     local _issue=${1:-$(get_git_ticket_ref)}
-    echo issue : $_issue
+    echo "issue : $_issue"
     shift
     git log --grep="${_issue}" $@
 }
@@ -168,8 +169,9 @@ gcommit()
         if [[ ! -z "$1" ]]
         then
             local _issue=`get_git_ticket_ref ${branch}`
+            [ -n "$_issue" ] && _issue="$_issue "
             # echo $_issue
-            local _cmd="git commit -m \"$_issue $@\""
+            local _cmd="git commit -m \"${_issue}$@\""
             echo $_cmd
             eval "$_cmd"
         else
