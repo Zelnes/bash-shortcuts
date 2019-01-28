@@ -3,11 +3,22 @@ bindsym Ctrl+F1 exec $spotify play
 bindsym Ctrl+F2 exec $spotify prev
 bindsym Ctrl+F3 exec $spotify next
 
+set $volume __TO_REPLACE__COMMON_BIN/updateVolumeApp
 # Bind Mute/Unmute
-bindsym XF86AudioMute exec updateVolumeApp m Spotify
+bindsym XF86AudioMute exec $volume m Spotify
 # Bind Volume +
-bindsym XF86AudioRaiseVolume exec updateVolumeApp + Spotify
+bindsym XF86AudioRaiseVolume exec $volume + Spotify
 # Bind Volume -
-bindsym XF86AudioLowerVolume exec updateVolumeApp - Spotify
+bindsym XF86AudioLowerVolume exec $volume - Spotify
 
 exec --no-startup-id davmail
+
+exec i3-msg 'workspace 1; exec i3-sensible-terminal; rename workspace to "1:Terms"; workspace 1'
+exec i3-msg 'workspace 8; exec thunderbird; rename workspace to "8:Mails"; workspace 1'
+exec i3-msg 'workspace 2; exec subl; rename workspace to "2:Subl"; workspace 1'
+exec i3-msg 'workspace 3; exec spotify; workspace 1'
+exec i3-msg 'workspace 3; exec skypeforlinux; workspace 1'
+exec i3-msg 'workspace 3; exec gajim; rename workspace to "3:Mess"; workspace 1'
+exec i3-msg 'workspace 5; exec firefox; rename workspace to "5:Nav"; workspace 1'
+
+exec i3-msg 'workspace 6; exec emacs; rename workspace to "6:Emacs"; workspace 1'
