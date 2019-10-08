@@ -1,5 +1,5 @@
 #!/bin/bash
- 
+
 function usage(){
 	printf "Usage for $0 :\n"
 	printf "\t-n nb_log   : Number of commits to treat\n"
@@ -11,7 +11,7 @@ function usage(){
 	printf "This script will print out files modified for a certain amount of commit\n"
 	printf "Commits must be grepped following a pattern (might be empty)\n"
 }
- 
+
 log_number=20;
 log_pattern="";
 # File Only Wanted

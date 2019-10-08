@@ -74,7 +74,7 @@ function saveLine() {
 # This function prints the staged area
 function print_array(i, s, f, len) {
   print "-----------------";
-  len = length(NR);
+  len = length(FNR);
   for (i in stArea) {
     s = " "
     for (f in found)
@@ -103,7 +103,7 @@ inScope == 0 {
   }
   # In all cases, reset evrything
   delete stArea;
-  stAreafirstLine = NR;
+  stAreafirstLine = FNR;
   idx = 1;
   delete found;
   idxF = 1;
@@ -116,5 +116,5 @@ inScope == 0 {
 
 # The pattern is found, say it !
 $0 ~ pat {
-  found[idxF++] = NR;
+  found[idxF++] = FNR;
 }

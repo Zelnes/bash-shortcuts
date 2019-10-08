@@ -13,12 +13,51 @@ bindsym XF86AudioLowerVolume exec $volume - Spotify
 
 exec --no-startup-id davmail
 
-exec i3-msg 'workspace 1; exec i3-sensible-terminal; rename workspace to "1:Terms"; workspace 1'
-exec i3-msg 'workspace 8; exec thunderbird; rename workspace to "8:Mails"; workspace 1'
-exec i3-msg 'workspace 2; exec subl; rename workspace to "2:Subl"; workspace 1'
-exec i3-msg 'workspace 3; exec spotify; workspace 1'
-exec i3-msg 'workspace 3; exec skypeforlinux; workspace 1'
-exec i3-msg 'workspace 3; exec gajim; rename workspace to "3:Mess"; workspace 1'
-exec i3-msg 'workspace 5; exec firefox; rename workspace to "5:Nav"; workspace 1'
+exec i3-msg '\
+	workspace 1; \
+	exec i3-sensible-terminal; \
+	rename workspace to "1:Terms" \
+'
+exec i3-msg '\
+	workspace 2;\
+	exec subl;\
+	rename workspace to "2:Subl";\
+'
 
-exec i3-msg 'workspace 6; exec emacs; rename workspace to "6:Emacs"; workspace 1'
+exec i3-msg '\
+	workspace 8;\
+	exec thunderbird;\
+	rename workspace to "8:Mails";\
+'
+
+exec i3-msg '\
+	workspace 3;\
+	exec spotify;\
+	exec skypeforlinux;\
+	exec gajim;\
+	rename workspace to "3:Mess";\
+'
+
+exec i3-msg '\
+	workspace 5;\
+	exec firefox;\
+	rename workspace to "5:Nav";\
+'
+
+exec i3-msg '\
+	workspace 7;\
+	exec blueman-manager;\
+	exec --no-startup-id sudo wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -i wlp4s0;\
+	exec sudo wpa_gui;\
+	exec pavucontrol;\
+	rename workspace to "7:Ctrl";\
+'
+
+exec i3-msg '\
+	workspace 6;\
+	exec atom;\
+	rename workspace to "6:Atom";\
+'
+
+# Load the 3 screen setup
+exec_always 'test "$(xrandr | grep -wc connected)" -eq 3 && xrandr --output DP-1 --mode 1920x1200 --pos 0x0 --output DP-4 --mode 1920x1080 --pos 1920x0 --output DP-3 --mode 1920x1200 --pos 3840x0'

@@ -9,7 +9,6 @@ alias box_device='readlink -f /proc/$(cat ${PID_F})/fd/0'
 
 send_command_box()
 {
-	connect_box
 	[ -f ${PID_F} ] && ttyecho -n $(box_device) "$@"
 }
 
@@ -35,19 +34,39 @@ alias connect_box='sudo ifconfig box0 {192.168.1.100,down,up}'
 alias findn='find -name'
 alias search-package='dpkg -S '
 
-make_verbose()
+__do_in_sdk()
+{
+	(
+		git_cd_n # go back to the higher git directory, hopefully it is sdk
+		[ ! -f .current_board ] && {
+			>&2 echo "No current board/target known in $(pwd)"
+			exit 1
+		}
+		"$@"
+	)
+}
+
+_make_verbose()
 {
 	local ret
 	[ -f make_log1.rej ] && cp make_log1.rej make_log1.bak.rej
-	dmake $@ V=sc -j1 --trace >make_log1.rej
+	dmake "$@" V=sc -j1 --trace >make_log1.rej
 	ret=$?
 	cp make_log1.rej make_log1.cpy.rej
 	return $ret
 }
-if type -f _completion_loader &>/dev/null; then
-	_completion_loader make
-	complete -F _make make_verbose
-fi
+make_verbose()
+{
+	__do_in_sdk _make_verbose "$@"
+}
+
+
+_sdk_docker_make()
+{
+	( git_cd_n && _docker_make "$@"; )
+}
+
+complete -F _sdk_docker_make make_verbose
 
 make_single_package()
 {
@@ -70,8 +89,8 @@ alias dsb_packages='set_static_title "DSB Packages"; cd /home/mgh/dev/sdk-feeds/
 alias dock='set_static_title Docker; cd /home/mgh/dev/dockerfiles'
 
 # Sets unlimited history size
-HISTSIZE=
-HISTFILESIZE=
+HISTSIZE=-1
+# HISTFILESIZE=
 
 # Will launch the given command for the current board
 __current_board_command()
@@ -84,7 +103,7 @@ __current_board_command()
 			>&2 echo "No current board/target known in $(pwd)"
 			exit 1
 		}
-		target=$(cat .current_board)-$(cat .current_config)
+		local target=$(cat .current_board)-$(cat .current_config)
 		echo "Running : dmake ${target}${cmd} ${args}"
 		dmake ${target}${cmd} "${args}"
 	)
@@ -100,6 +119,12 @@ menuconfig()
 compile()
 {
 	__current_board_command "" -j10 "$@"
+}
+
+# Compile anything
+compilea()
+{
+	__current_board_command "$@"
 }
 
 flash_image()
@@ -124,4 +149,25 @@ flash_image()
 		}
 	fi
 	curl -o /dev/null -F"filename=@${img}" http://192.168.1.1/upload.cgi
+}
+
+screen_add_right() {
+	xrandr --output DP-1 --mode 1920x1200 --pos 1920x0
+}
+
+screen_remove_right() {
+	xrandr --fb 1920x1080
+}
+
+screen_desktop3()
+{
+	xrandr --output DP-1 --mode 1920x1200 --pos 0x0 --output DP-4 --mode 1920x1080 --pos 1920x0 --output DP-3 --mode 1920x1200 --pos 3840x0
+}
+
+vlans_down ()
+{
+	for i in $(ip r | grep -oE "enp[^. ]+\..");
+	do
+		sudo ifdown $i;
+	done
 }

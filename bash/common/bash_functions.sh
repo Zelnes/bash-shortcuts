@@ -86,10 +86,20 @@ function update_PS1()
     [ $__status -eq 0 ] || my_datePS1="$(reverse_color_text "$my_datePS1")"
     my_gitPS1=`color_text "${my_gitPS1}" 167`
     my_svnPS1=`color_text "${my_svnPS1}" 128`
+    my_shellLVLPS1="$(echo $SHLVL | sed 's/^1$//; t; s/.*/[SH:&]/')"
+    my_shellLVLPS1=$(color_text "${my_shellLVLPS1}" 120)
+    my_SSHPS1=${SSH_TTY:+[ssh]}
+    my_SSHPS1="$(color_text "${my_SSHPS1}" 12)"
 
     local _txt_color="\001\e[38;5;110m\002"
-    PS1='${my_userPS1}${my_datePS1}${my_gitPS1}${my_svnPS1}:${my_pwdPS1}$ '
+    PS1='${my_SSHPS1}${my_shellLVLPS1}${my_userPS1}${my_datePS1}${my_gitPS1}${my_svnPS1}:${my_pwdPS1}$ '
     _set_title "${_my_pwdPS1}"
+}
+
+function top_bash() {
+    while [[ $SHLVL -ne 1 ]]; do
+        exit
+    done
 }
 
 # Change directory to the previous one
@@ -100,7 +110,7 @@ function update_PS1()
 # $ bcd # --> pwd = /home/me
 # $ bcd # --> pwd = /tmp
 # Same as 'cd -' but, for me, faster to type
-alias bcd='cd $OLDPWD'
+alias bcd='cd "$OLDPWD"'
 
 alias grep='grep --color=auto'
 
@@ -108,12 +118,12 @@ export EDITOR="$(which subl)"
 
 alias m='emacsclient -nq'
 
-export LESS="-R -M -J -X -F"
+# export LESS="-R -M -J -F"
 batless() {
     if which bat &>/dev/null; then
-        bat --color always "$1" | less -R
+        bat --color always "$@" | less -R
     else
-        cat "$1" | less
+        cat "$@" | less
     fi
 }
 
@@ -154,4 +164,55 @@ correspondant_endif() {
 docker-clean()
 {
     docker rm $(docker ps -a | awk '/^[^C]/{print $NF}')
+}
+
+# export LANG=C
+
+search_for_pattern() {
+    local pat="$1"
+    for i in $(rg -l "$pat"); do
+        awk -v pat="$pat" '
+          BEGIN {
+            brack=0;
+          }
+          function saveLine() {
+            stArea[idx++] = "/*["FILENAME":"NR"]*/"$0;
+          }
+          function print_array(i, s, f) {
+            print "-----------------";
+            for(i in stArea) {
+              s = " "
+              for (f in found)
+                if (stArea[i] ~ ":"found[f])
+                    s = "*"
+              print s stArea[i];
+            }
+          }
+          /{/ { brack++; }
+          /}/ { brack--; }
+          brack == 0 {
+            if (found[1]) {
+              saveLine();
+              print_array();
+            }
+            delete stArea;
+            idx = 1;
+            delete found;
+            idxF = 1;
+          }
+          {
+            saveLine();
+          }
+          $0 ~ pat {
+            found[idxF++] = NR;
+          }' $i; done
+}
+
+chr() {
+    [ "$1" -lt 256 ] || return 1
+    printf "\\$(printf '%03o' "$1")"
+}
+
+ord() {
+    LC_CTYPE=C printf '%d' "'$1"
 }

@@ -108,24 +108,24 @@ parse_args() {
 	done
 }
 
-# echo_vars() {
-# 	echo -e "\n=== Checking vars..."
-# 	for i in $@; do
-# 	eval echo \"$i = \'\${$i}\'\"
-# 	done
-# 	echo -e "\n=== Checking Global vars"
-# 	echo "PA_AO : ${!PA_AO[@]}"
-# 	echo "PA_R  : ${PA_R}"
-# }
+echo_vars() {
+	echo -e "\n=== Checking vars..."
+	for i in $@; do
+	eval echo \"$i = \'\${$i}\'\"
+	done
+	echo -e "\n=== Checking Global vars"
+	echo "PA_AO : ${!PA_AO[@]}"
+	echo "PA_R  : ${PA_R}"
+}
 
-# test_func() {
-# 	echo " -- Calling for '$@'"
-# 	parse_args "-p=mon_option --autre=voyons une-autre --verbose=verbosity --alone -y" "$@"
-# 	echo_vars mon_option voyons verbosity
-# }
+test_func() {
+	echo " -- Calling for '$@'"
+	parse_args "-p=mon_option --autre=voyons une-autre --verbose=verbosity --alone -y" "$@"
+	echo_vars mon_option voyons verbosity
+}
 
-# call_func() {
-# 	test_func -p porte quelquechose --verbose "Oui on peut" --autre="ca marche ca" --alone -y -e "Voila ce que je te dis"
-# }
+call_func() {
+	test_func -p porte quelquechose --verbose "Oui on peut" --autre="ca marche ca" --alone -y -e "Voila ce que je te dis"
+}
 
 # call_func
