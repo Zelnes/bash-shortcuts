@@ -371,3 +371,38 @@ gamend()
     fi
     git commit --amend ${no}
 }
+
+# Will print, for each current modified files, every commit
+find_commits_for_changed_files() {
+    local possible_branch_origin=$(git log --format="%D" | sed -rn '; /^origin\/l?sdk-dev/{s/,.*$//;p;q}')
+    local branchFrom=${1:-${possible_branch_origin}}
+    local files=$(git status --short -uno | awk '{c = c "," $NF} END { print c }')
+    # files starts with a comma, remove it when passing it to awk
+    git log --name-only --format="__sep__ %h" "${branchFrom}".. | awk -v files="${files/,/}" '
+        BEGIN {
+            RS = "__sep__";
+            CSEP = " "
+            split(files, arrF, ",")
+        }
+        NF == 0 { next; }
+
+        {
+            commit = $1
+            for (i = 2; i <= NF; ++i) {
+              for (j in arrF) {
+                if ($i == arrF[j]) {
+                  arr[$i] = arr[$i] commit CSEP;
+                }
+              }
+            }
+        }
+        END {
+        for (i in arr)
+          printf("%s: ", i);
+          if (arr[i])
+            print(arr[i])
+          else
+            print "None"
+        }
+    '
+}
