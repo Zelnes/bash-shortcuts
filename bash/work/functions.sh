@@ -27,7 +27,8 @@ send_reboot_box()
 	send_command_box r n 192.168.1.100 openwrt-broadcom-6836-vmlinux-initramfs-rd.elf  noramdisk 96836.dtb 0x04000000
 }
 
-alias control-center='unset XDG_CURRENT_DESKTOP; gnome-control-center &>/dev/null &'
+alias control-center='XDG_CURRENT_DESKTOP=GNOME gnome-control-center &>/dev/null &'
+# alias control-center='unset XDG_CURRENT_DESKTOP; gnome-control-center &>/dev/null &'
 alias ssh-registry='ssh docker@192.168.100.238'
 alias mtail-sdk='mtail -f make_log1.rej -w "==== My Marker MGH ===="'
 alias connect_box='sudo ifconfig box0 {192.168.1.100,down,up}'
@@ -89,8 +90,31 @@ alias dsb_packages='set_static_title "DSB Packages"; cd /home/mgh/dev/sdk-feeds/
 alias dock='set_static_title Docker; cd /home/mgh/dev/dockerfiles'
 
 # Sets unlimited history size
-HISTSIZE=-1
-# HISTFILESIZE=
+export HISTSIZE=""
+export HISTFILESIZE=-1
+export FROMHISTFILE=~/bash_history/full_history
+export HISTFILE=$(mktemp -p ~/bash_history/)
+
+__save_history() {
+	{
+		diff "${FROMHISTFILE}" "${HISTFILE}" | sed -n 's/> //p' >>"${FROMHISTFILE}";
+	} 2>/dev/null
+}
+
+__reload_history() {
+	__save_history
+	cp "${FROMHISTFILE}" "${HISTFILE}"
+}
+
+__finish_trap() {
+	local temp="${HISTFILE}"
+	__save_history
+	export HISTFILE="${FROMHISTFILE}"
+	rm "${temp}"
+}
+# Set this function to be called when bash exits
+trap __finish_trap EXIT
+__reload_history
 
 # Will launch the given command for the current board
 __current_board_command()
@@ -156,12 +180,16 @@ screen_add_right() {
 }
 
 screen_remove_right() {
-	xrandr --fb 1920x1080
+	xrandr --output eDP-1 --mode 1920x1080 --pos 0x0
 }
 
-screen_desktop3()
-{
-	xrandr --output DP-1 --mode 1920x1200 --pos 0x0 --output DP-4 --mode 1920x1080 --pos 1920x0 --output DP-3 --mode 1920x1200 --pos 3840x0
+screen_desktop3() {
+	# xrandr --output DP-1 --mode 1920x1200 --pos 0x0 --output DP-4 --mode 1920x1080 --pos 1920x0 --output DP-3 --mode 1920x1200 --pos 3840x0
+	xrandr --output DP-3 --mode 3840x1600 --pos 1920x0 --output eDP-1 --mode 1920x1080 --pos 0x0 --output DP-2 --mode 1920x1200 --pos 5760x0 --rotate left
+}
+
+screen_salle_e1_004_p12() {
+	xrandr --output DP-2 --mode 1920x1080 --pos 0x0 --output eDP-1 --mode 1920x1080 --pos 1920x0
 }
 
 vlans_down ()
@@ -170,4 +198,44 @@ vlans_down ()
 	do
 		sudo ifdown $i;
 	done
+}
+
+# $1 : {up/down}
+vlans_conf() {
+	local state="$1" i
+	case "$state" in
+		up|down)
+			for i in $(ip link | awk '/^[0-9]+:/ && /enp0s31f6\./ { sub(/@.*/, "", $2); print $2}'); do
+				sudo ip link set $i $state
+			done
+			;;
+		*)
+			echo "Wrong state; must be {up,down}"
+			return 1
+			;;
+	esac
+}
+
+# $1 : Network SSID
+# Get list : wpa_cli list_network -i wlp4s0 | awk -F'\t' 'NR > 1{print $2}' | sort -u
+# TODO : mettre une fonction de complétion
+wpa_qrcode() {
+	local network="$1"
+	awk -v net="$network" -F'[="[:blank:]]+' '
+		BEGIN {
+			RS = "network={";
+		}
+		{
+			for (i = 1; i <= NF; ++i)
+				if ($i == "ssid") {
+					if ($(++i) != net)
+						next;
+					else
+						continue;
+				}
+				if ($i == "psk") {
+					printf("%s", $(i+1));
+					exit;
+				}
+		}' /etc/wpa_supplicant/wpa_supplicant.conf | qrencode -t utf8
 }

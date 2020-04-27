@@ -10,7 +10,7 @@ PROMPT_COMMAND='update_PS1'
 # Retrieve the time HH:MM:SS
 function get_datePS1()
 {
-    my_datePS1=`date "+[%T]"`
+    my_datePS1=$(date "+[%T]")
 }
 
 # Takes two arguments:
@@ -46,7 +46,7 @@ function _echo_title()
 #   only if it was not in a static state
 function _set_title()
 {
-    if [[ ! -f ${TITLE_FILE} ]]; then
+    if [ ! -f ${TITLE_FILE} ]; then
         _echo_title "$1"
     fi
 }
@@ -67,25 +67,22 @@ function unset_static_title()
 function update_PS1()
 {
     __status=$?
-    # Update History
-    history -a
-    history -n
 
     # Update functions
     get_datePS1
     get_gitPS1
     get_svnPS1
 
-    # _my_userPS1=`whoami`
-    # my_userPS1=`color_text "[${_my_userPS1}]" 83`
+    # _my_userPS1=$(whoami)
+    # my_userPS1=$(color_text "[${_my_userPS1}]" 83)
 
-    _my_pwdPS1=`pwd | sed "s#$HOME#~#" | sed -E "s#([^/])[^/]+/#\1/#g"`
-    my_pwdPS1=`color_text "[${_my_pwdPS1}]" 103`
+    _my_pwdPS1=$(pwd | sed "s#$HOME#~#" | sed -E "s#([^/])[^/]+/#\1/#g")
+    my_pwdPS1=$(color_text "[${_my_pwdPS1}]" 103)
 
-    my_datePS1=`color_text "${my_datePS1}" 244`
+    my_datePS1=$(color_text "${my_datePS1}" 244)
     [ $__status -eq 0 ] || my_datePS1="$(reverse_color_text "$my_datePS1")"
-    my_gitPS1=`color_text "${my_gitPS1}" 167`
-    my_svnPS1=`color_text "${my_svnPS1}" 128`
+    my_gitPS1=$(color_text "${my_gitPS1}" 167)
+    my_svnPS1=$(color_text "${my_svnPS1}" 128)
     my_shellLVLPS1="$(echo $SHLVL | sed 's/^1$//; t; s/.*/[SH:&]/')"
     my_shellLVLPS1=$(color_text "${my_shellLVLPS1}" 120)
     my_SSHPS1=${SSH_TTY:+[ssh]}
@@ -96,12 +93,6 @@ function update_PS1()
     _set_title "${_my_pwdPS1}"
 }
 
-function top_bash() {
-    while [[ $SHLVL -ne 1 ]]; do
-        exit
-    done
-}
-
 # Change directory to the previous one
 # Example :
 # $ pwd
@@ -110,11 +101,20 @@ function top_bash() {
 # $ bcd # --> pwd = /home/me
 # $ bcd # --> pwd = /tmp
 # Same as 'cd -' but, for me, faster to type
-alias bcd='cd "$OLDPWD"'
+function cd() {
+    _OLDPWD=$OLDPWD
+    command cd "$@"
+}
+function bcd() {
+    cd "$OLDPWD"
+}
+function bbcd() {
+    [ "$_OLDPWD" = "$PWD" ] && return
+    cd "$_OLDPWD"
+}
+export -f cd bcd bbcd
 
 alias grep='grep --color=auto'
-
-export EDITOR="$(which subl)"
 
 alias m='emacsclient -nq'
 
@@ -123,7 +123,7 @@ batless() {
     if which bat &>/dev/null; then
         bat --color always "$@" | less -R
     else
-        cat "$@" | less
+        less "$@"
     fi
 }
 
@@ -215,4 +215,14 @@ chr() {
 
 ord() {
     LC_CTYPE=C printf '%d' "'$1"
+}
+
+# Function that will open each rej that a "quilt push -f" generated
+# When the editor is done with a rej, rm it and open the next
+# When no more rej is to be open launch "quilt refresh"
+quilt_atom_fix_rej() {
+    local i;
+    for i in $(find -name '*.rej'); do
+        ( set -x; atom --wait $i; rm $i; );
+    done && quilt refresh
 }
