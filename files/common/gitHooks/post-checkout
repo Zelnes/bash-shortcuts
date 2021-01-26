@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# this script saves the last branch into the <hookspath>/.last_branch file
+
+# The syntax is the following : !path!to!git!root old_branch new_branch
+
+BRANCH_CHECKOUT=$3
+
+save_branch() {
+	local _LBF _CB _CD
+
+	# Last Branch File
+	eval _LBF=$(git config --get core.hookspath)/.last_branch
+	_LBF=$(realpath $_LBF)
+	touch $_LBF
+
+	# Current Branch
+	_CB=$(git branch | awk '/^*/{print $NF}'  | sed 's/)$//')
+
+	# Current Directory
+	_CD=$(pwd | sed 's|/|!|g')
+
+
+	awk -v CB=$_CB -v CD=$_CD 'BEGIN{cd=0}($0~"^"CD" "){print $1" "$NF" "CB; cd=1}!($0~"^"CD" "){print}END{if(cd==0) print CD" "CB;}' $_LBF >$_LBF.tmp
+	mv $_LBF.tmp $_LBF
+}
+
+[ "$BRANCH_CHECKOUT" = "1" ] && save_branch
+:

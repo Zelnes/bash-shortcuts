@@ -1,0 +1,64 @@
+!home!mgh!dev!sdk test.5.1.16 nbx-dev
+!home!mgh!dev!sdk-feeds!dsb_packages nbx-dev feature/NBX-3977-ne-plus-avoir-l-overlay-rempli-au-boot
+!home!mgh!dev!sdk-2 nbx-dev nbx-dev
+!home!mgh!dev!sdk!feeds!packages sdk-dev sdk-dev
+!home!mgh!dev!sdk-tools wip/compile_all_packages feature/LSDK-420-test
+!home!mgh!dev!dockerfiles wip/bitbucket_api master
+!home!mgh!dev!buildbot master preprod
+!home!mgh!dev!sdk-3 feature/LSDK-422-addvtoken-ne-compile-pas-ce-que-l-on-pense feature/LSDK-420-upgrade-TN-sdk
+!home!mgh!dev!sdk!feeds!dsb_packages nbx-dev test.5.1.16
+!home!mgh!docs!shared!temp master wip/output-regex-to-files-instead-of-bash-variables
+!home!mgh!dev!sdk-2-feeds!packages feature/NBX-3912-webui-uthash.h-a-extraire-de-nbx-wf-package-independant nbx-dev
+!home!mgh!dev!sdk-2-feeds!dsb-packages master
+!home!mgh!dev!sdk-2-feeds!dsb_packages feature/NBX-3918-integration-smart-wifi-1.6.3r21 feature/NBX-3793-alp-implementer-les-callbacks
+!home!mgh!dev!sdk-2!feeds!dsb_packages feature/NBX-3821-alp-update-smw-to-r feature/NBX-3821-alp-update-smw-to-r
+!home!mgh!dev!bfoverlay boardfarm-rework master
+!home!mgh!dev!bfoverlay!boardfarm dsb2 dsb2
+!home!mgh!dev!sdk-2!feeds!packages demo/sprint-lsdk-15 sdk-dev
+!home!mgh!docs!shared!letre-du-ciel feature/ISSUE-#1-cpp-and-english wip/clean-makefile
+!home!mgh!dev!sdk-feeds!packages test.5.1.16 nbx-dev
+!home!mgh!test!git!test-glt master master
+!home!mgh!dev!miniupnp master
+!home!mgh!docs!shared!bash_shortcuts wip/harmonisation wip/harmonisation
+!home!mgh!dev!git-formation!git-tutorial refs/heads/bizarre answer
+!home!mgh!dev!git-formation!test master master
+!home!mgh!dev!git-formation!new-one master refs/heads/master
+!home!mgh!dev!linux-stable master v5.5.9
+!home!mgh!dev!mcu feature/SDK-1390-gen8dsl-sfr-fix-mcu-dependencies master
+!home!mgh!dev!sdk-feeds!luci test.5.1.16 nbx-dev
+!home!mgh!dev!trunk-next nbx/release/4.1 nbx/release/4.0
+!home!mgh!dev!sdk-feeds!dsb_packages2 bugfix/SDK-1154-gen8dsl-sfr-repartitionning-a-chaud bugfix/SDK-1154-gen8dsl-sfr-repartitionning-a-chaud
+!home!mgh!dev!xl2tpd 1.3.15dev pr/fix-lac-add-modify
+!home!mgh!dev!bugs!XDSL-63!miniupnp master
+!home!mgh!dev!test!dsb-packages master
+!home!mgh!dev!docker2 tmp/test-fetch master
+!home!mgh!docs!codingbattle-2019 master
+!home!mgh!dev!symbols-navigator wip/add-constant-support wip/add-type-support
+!home!mgh!dev!atom master 1.43-releases
+!home!mgh!dev!i3lock-color master master
+!home!mgh!dev!i3lock master
+!home!mgh!dev!betterlockscreen master
+!home!mgh!dev!ddccontrol-db master master
+!home!mgh!dev!ddccontrol master
+!home!mgh!dev!AR_GUI master
+!home!mgh!dev!whitespace wip/remove-whitespaces-on-new-lines-non-edited-rebase wip/remove-whitespaces-on-new-lines-non-edited-rebase
+!home!mgh!dev!botqt master integrationGraphique
+!home!mgh!dev!sdk-3-feeds!packages nbx-dev nbx-dev
+!home!mgh!dev!sdk-3-feeds!dsb-packages master
+!home!mgh!dev!sdk-3-feeds!dsb_packages feature/LSDK-420-upgrade-TN-sdk feature/LSDK-420-upgrade-TN-sdk
+!home!mgh!dev!prv master
+!home!mgh!dev!prv2!VPR-2 feat/vpr2 feat/vpr2
+!home!mgh!.nvm branche branche
+!home!mgh!dev!dunst master
+!home!mgh!dev!sdk-3!feeds!packages nbx-dev feature/LSDK-335-generation-d-une-image-pour-livraison
+!home!mgh!dev!sdk-3!feeds!dsb_packages feature/LSDK-414-nvram-1k-3k-proteger-les-flashs-linux feature/LSDK-414-nvram-1k-3k-proteger-les-flashs-linux
+!home!mgh!dev!systemd master
+!home!mgh!dev!tmp_docker master
+!home!mgh!dev!sdk-3!feeds!luci lsdk-dev feature/LSDK-335-generation-d-une-image-pour-livraison
+!home!mgh!dev!toto master master
+!home!mgh!dev!sdk!toto master
+!home!mgh!dev!ui-demo master dev
+!home!mgh!dev!sdk-tools2 master
+!home!mgh!docs!battles!battle_2020!shaker!coding-battle2020 main
+!home!mgh!dev!sdk-demos!propositions master master
+!home!mgh!dev!vscode master

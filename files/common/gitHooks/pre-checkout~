@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# this script saves the last branch into the <hookspath>/.last_branch file
+
+# The syntax is the following : !path!to!git!root commit
+
+# Last Branch File
+eval _LBF=$(git config --get core.hookspath)/.last_branch
+_LBF=$(realpath $_LBF)
+
+# Current Directory
+_CD=$(pwd | sed 's|/|!|g')
+
+# Remove lines starting with the same current path
+sed -i "/^$_CD/d" $_LBF
+# Adding the current path to the end of the file
+echo $_CD $1 >>$_LBF
+:
