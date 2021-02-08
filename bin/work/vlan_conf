@@ -47,6 +47,18 @@ fail_unless_root() {
 # sudo /etc/init.d/network-manager stop
 # ping 192.168.2.10 # test de l'ajout
 
+setup_new_vlan() {
+	local name="$1"
+	local ip="$2"
+	local id="$3"
+	# Ajout d'un VLAN, d'identifiant 1 et nommé sw0 à l'interface ethernet
+	sudo ip link add link enp0s31f6 name ${name} type vlan id $id
+	# Commande qui assigne la plage d'adresse au VLAN sw0
+	sudo ip addr add ${ip} dev ${name}
+	# Il faut maintenant activer les nouvelles modifications
+	sudo ip link set ${name} up
+}
+
 setup_switch_vlan() {
 	# Ajout d'un VLAN, d'identifiant 1 et nommé sw0 à l'interface ethernet
 	sudo ip link add link enp0s31f6 name sw0 type vlan id 1
@@ -89,9 +101,11 @@ unsetup_efixo_dns() {
 
 case "$1" in
 	start)
-		fail_unless_root
-		setup_box_vlan
-		setup_switch_vlan
+		setup_new_vlan management 192.168.50.100/24 50
+		setup_new_vlan nb6vac 192.168.60.100/24 60
+		setup_new_vlan gen8SDK 192.168.61.100/24 61
+		setup_new_vlan gen8BSP 192.168.62.100/24 62
+
 		# setup_efixo_dns
 		echo "VLAN correctly configured" >>$status_file
 		;;

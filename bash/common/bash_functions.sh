@@ -1,9 +1,4 @@
-bash_path=$(realpath $(dirname ${BASH_SOURCE[0]})/..)
-
-TMP=/tmp/bash_function_temporary
-mkdir -p ${TMP}
-
-# source "${bash_path}/git/git_functions.sh"
+__BASH_FUNCTION_PATH=$(realpath $(dirname ${BASH_SOURCE[0]})/..)
 
 PROMPT_COMMAND='update_PS1'
 
@@ -29,7 +24,7 @@ function reverse_color_text()
 
 # The title state
 TITLE_STATE="reset"
-TITLE_FILE=${TMP}/$$
+TITLE_FILE=$(mktemp -up /tmp/ "title_file.XXXX")
 
 # Function that sets effectively the title
 function _echo_title()
@@ -46,7 +41,7 @@ function _echo_title()
 #   only if it was not in a static state
 function _set_title()
 {
-    if [ ! -f ${TITLE_FILE} ]; then
+    if [ ! -f "${TITLE_FILE}" ]; then
         _echo_title "$1"
     fi
 }
@@ -54,14 +49,34 @@ function _set_title()
 # Changes the terminal title statically
 function set_static_title()
 {
-    echo "$1" >${TITLE_FILE}
-    _echo_title "$(cat ${TITLE_FILE})"
+    echo "$1" >"${TITLE_FILE}"
+    _echo_title "$(cat "${TITLE_FILE}")"
 }
 export -f set_static_title
 
 function unset_static_title()
 {
-    rm -f ${TITLE_FILE}
+    rm -f "${TITLE_FILE}"
+}
+
+get_quiltPS1() {
+    quilt top &>/dev/null || return
+    local quilt=quilt top
+    if [ -n "$(quilt diff -z)" ]; then
+        quilt=$(reverse_color_text "quilt")
+    fi
+    top="$(quilt series -v | awk '
+        /^\+/ { b++ }
+        /^ / { a++ }
+        /^=/ { top = $NF }
+        END {
+            if (a)
+                printf("%s/", b)
+            printf("%s", top)
+            if (a)
+                printf("/%s", a)
+        }')"
+    echo -n "[$quilt $top]"
 }
 
 function update_PS1()
@@ -72,6 +87,7 @@ function update_PS1()
     get_datePS1
     get_gitPS1
     get_svnPS1
+    my_quiltPS1="$(get_quiltPS1)"
 
     # _my_userPS1=$(whoami)
     # my_userPS1=$(color_text "[${_my_userPS1}]" 83)
@@ -83,13 +99,14 @@ function update_PS1()
     [ $__status -eq 0 ] || my_datePS1="$(reverse_color_text "$my_datePS1")"
     my_gitPS1=$(color_text "${my_gitPS1}" 167)
     my_svnPS1=$(color_text "${my_svnPS1}" 128)
+    my_quiltPS1=$(color_text "$my_quiltPS1" 214)
     my_shellLVLPS1="$(echo $SHLVL | sed 's/^1$//; t; s/.*/[SH:&]/')"
     my_shellLVLPS1=$(color_text "${my_shellLVLPS1}" 120)
     my_SSHPS1=${SSH_TTY:+[ssh]}
     my_SSHPS1="$(color_text "${my_SSHPS1}" 12)"
 
     local _txt_color="\001\e[38;5;110m\002"
-    PS1='${my_SSHPS1}${my_shellLVLPS1}${my_userPS1}${my_datePS1}${my_gitPS1}${my_svnPS1}:${my_pwdPS1}$ '
+    PS1='${my_SSHPS1}${my_shellLVLPS1}${my_userPS1}${my_datePS1}${my_gitPS1}${my_svnPS1}${my_quiltPS1}:${my_pwdPS1}$ '
     _set_title "${_my_pwdPS1}"
 }
 
@@ -222,7 +239,35 @@ ord() {
 # When no more rej is to be open launch "quilt refresh"
 quilt_atom_fix_rej() {
     local i;
-    for i in $(find -name '*.rej'); do
-        ( set -x; atom --wait $i; rm $i; );
+    for i in $(quilt files); do
+        [ -f "$i.rej" ] || continue;
+        ( set -x; chmod +w "$i"; atom --wait "$i.rej"; rm "$i.rej"; );
     done && quilt refresh
 }
+
+preexec() {
+    true
+}
+
+preexec_invoke_exec()
+{
+    set -x;
+    [ -n "$COMP_LINE" ] && {
+        set +x;
+        return;
+    }  # do nothing if completing
+    [ "$BASH_COMMAND" = "$PROMPT_COMMAND" ] && {
+        set +x;
+        return;
+    } # don't cause a preexec for $PROMPT_COMMAND
+    local this_command=`HISTTIMEFORMAT= history 1 | sed -e "s/^[ ]*[0-9]*[ ]*//"`;
+    preexec "$this_command";
+    set +x;
+}
+# trap 'preexec_invoke_exec' DEBUG
+
+dunno() {
+    echo "¯\_(ツ)_/¯"
+}
+
+export RIPGREP_CONFIG_PATH="${__BASH_FUNCTION_PATH}/common/rgrc"

@@ -84,21 +84,56 @@ open-any()
 }
 
 alias t='set_static_title Test; cd ~/test'
-alias sdk='set_static_title SDK; cd /home/mgh/dev/sdk'
-alias sdk2='set_static_title "SDK 2"; cd /home/mgh/dev/sdk-2'
-alias dsb_packages='set_static_title "DSB Packages"; cd /home/mgh/dev/sdk-feeds/dsb_packages/'
 alias dock='set_static_title Docker; cd /home/mgh/dev/dockerfiles'
+
+sdk() {
+	# If $1 is given, prepend a "-" sign
+	local orig="$1"
+
+	set_static_title "SDK${orig:+ $orig}"
+	cd "/home/mgh/dev/sdk${orig:+-$orig}"
+}
+
+dsb_packages() {
+	# If $1 is given, prepend a "-" sign
+	local orig="$1"
+
+	set_static_title "DSB Packages${orig:+ $orig}"
+	cd "/home/mgh/dev/sdk${orig:+-$orig}-feeds/dsb_packages"
+}
 
 # Sets unlimited history size
 export HISTSIZE=""
 export HISTFILESIZE=-1
 export FROMHISTFILE=~/bash_history/full_history
-export HISTFILE=$(mktemp -p ~/bash_history/)
+export HISTTEMPLATE="hist_template.XXXXXXXX"
+
+if [ "$HISTFILE" = "$HOME/.bash_history" ]; then
+	export HISTFILE=$(mktemp -p ~/bash_history/ "$HISTTEMPLATE")
+fi
+HISTLOCK="$HOME/bash_history/HISTLOCK"
+
+clean_history() {
+	local from="$1";
+	local tmp="${from}2"
+	{
+		flock 42
+		awk '{a[$0]=1} END{for(i in a) print i}' "$@" | sort >"${tmp}"
+		mv "${tmp}" "${from}"
+	} 42>"$HISTLOCK"
+}
 
 __save_history() {
 	{
-		diff "${FROMHISTFILE}" "${HISTFILE}" | sed -n 's/> //p' >>"${FROMHISTFILE}";
-	} 2>/dev/null
+		# Flush current history in the file
+		history -w
+		# diff "${FROMHISTFILE}" "${HISTFILE}" \
+		# 	--new-line-format="%L" \
+		# 	--old-line-format=""  \
+		# 	--unchanged-line-format="" >"${FROMHISTFILE}2"
+		# mv "${FROMHISTFILE}2" "${FROMHISTFILE}"
+		clean_history "${FROMHISTFILE}" "${HISTFILE}"
+	}
 }
 
 __reload_history() {
@@ -115,6 +150,11 @@ __finish_trap() {
 # Set this function to be called when bash exits
 trap __finish_trap EXIT
 __reload_history
+
+# This command cleans the history directory
+clean_history_dir() {
+	clean_history "${FROMHISTFILE}" $(find -name "${HISTTEMPLATE//.X*/}.*")
+}
 
 # Will launch the given command for the current board
 __current_board_command()
@@ -154,6 +194,7 @@ compilea()
 flash_image()
 {
 	local img="$1" secure
+	local ip="${IP:-192.168.1.1}"
 
 	[ -f "${img}" ] || {
 		[[ "${img}" =~ ^/tftpboot ]] || img="/tftpboot/${img}"
@@ -172,7 +213,7 @@ flash_image()
 			return 0
 		}
 	fi
-	curl -o /dev/null -F"filename=@${img}" http://192.168.1.1/upload.cgi
+	curl -o /dev/null -F"filename=@${img}" "http://$ip/upload.cgi"
 }
 
 screen_add_right() {
@@ -185,11 +226,21 @@ screen_remove_right() {
 
 screen_desktop3() {
 	# xrandr --output DP-1 --mode 1920x1200 --pos 0x0 --output DP-4 --mode 1920x1080 --pos 1920x0 --output DP-3 --mode 1920x1200 --pos 3840x0
-	xrandr --output DP-3 --mode 3840x1600 --pos 1920x0 --output eDP-1 --mode 1920x1080 --pos 0x0 --output DP-2 --mode 1920x1200 --pos 5760x0 --rotate left
+	xrandr --output DP-3  --mode 3840x1600 --pos 1920x0 \
+	       --output eDP-1 --mode 1920x1080 --pos 0x0 \
+	       --output DP-2  --mode 1920x1200 --pos 5760x0 --rotate left
+}
+
+screen_only_big() {
+	local location="${1:-left}"
+	xrandr --output eDP-1 --mode 1920x1080 --pos 0x0 \
+	       --output DP-2  --mode 3840x1600 --${location}-of eDP-1
 }
 
 screen_salle_e1_004_p12() {
-	xrandr --output DP-2 --mode 1920x1080 --pos 0x0 --output eDP-1 --mode 1920x1080 --pos 1920x0
+	local location="${1:-left}"
+	xrandr --output eDP-1 --mode 1920x1080 --pos 0x0 \
+	       --output DP-2  --mode ${RES:-1920x1080} --${location}-of eDP-1
 }
 
 vlans_down ()
@@ -238,4 +289,72 @@ wpa_qrcode() {
 					exit;
 				}
 		}' /etc/wpa_supplicant/wpa_supplicant.conf | qrencode -t utf8
+}
+
+enable_ethernet() {
+	local wifi=wlp4s0
+	sudo -- sh -c "
+	dhclient -r ${wifi}
+	wpa_cli -i ${wifi} disconnect
+	wg-quick down dsb0
+	dhclient -v internet
+	ethtool -r enp0s31f6
+	"
+}
+
+enable_wifi() {
+	local wifi=wlp4s0
+	local network="$1"
+	local wpa="wpa_cli -i ${wifi}"
+	sudo -- sh -c "
+	ID=$(${wpa} list_network | sed -n "s/\t${network}\t.*//p")
+	[ -z \"\$ID\" ] && exit 1
+	dhclient -r internet
+	${wpa} select_network \$ID
+	dhclient -v ${wifi}
+	wg-quick up dsb0
+	"
+}
+
+_wifi_known() {
+	local cur opts cmd toot
+	local wpa="wpa_cli -i wlp4s0"
+
+	cur="${COMP_WORDS[COMP_CWORD]}"
+	cur=${cur//\/\\}
+	# cmd="${COMP_WORDS[*]}"
+	# cmd=${cmd% *}
+	# case "$(basename "${COMP_WORDS[0]}")" in
+	# opts=$()
+	# 	"build-host.sh") [ ${COMP_CWORD} -eq 1 ] && opts+=" --update" ;;
+	# esac
+	toot="$(${wpa} list_network | awk -F'\t' '$2 ~ /^'$cur'/ {print $2}')"
+	# toot="$(${wpa} list_network | sed -r '1d; s/^[^\t]+\t//; s/(\t[^\t]*){2}$//; s/[[:blank:]]/\\&/g')"
+	local IFS=$'\n'
+	# COMPREPLY=( $(compgen -W "$toot" -- "$cur") )
+	COMPREPLY=( $(printf "%q\n" $toot))
+}
+complete -F _wifi_known enable_wifi
+
+alias refresh='xset dpms force suspend'
+
+mgh_picocom_connect()
+{
+	local dev=$1
+	[[ "$dev" =~ ^[0-9]+$ ]] && dev=/dev/ttyUSB${dev}
+	[ -e "$dev" ] && picocom -b 115200 $dev
+}
+
+mgh_picocom() {
+	local i
+
+	set_static_title "Picocom BOX"
+	# Will try to connect to serial port on /dev/ttyUSB0 with a baudrate of 115200
+	if [[ $# -eq 1 ]]; then
+		mgh_picocom_connect "$1"
+	else
+		for i in /dev/ttyUSB*; do
+			mgh_picocom_connect "$i" && break
+		done
+	fi
 }

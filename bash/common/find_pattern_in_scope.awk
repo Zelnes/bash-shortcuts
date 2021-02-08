@@ -13,6 +13,7 @@ BEGIN {
   }
   list_files()
   inScope = 0;
+  scopeFound = 0;
   stAreafirstLine = 0;
   if (!length(scopeBegin))
     scopeBegin = "{"
@@ -54,7 +55,7 @@ function usage() {
 # 'grep' if not
 function list_files() {
   if (!length(finder)) {
-    "{ which rg || { which grep && echo ' -r'; } } | tr -d '\n'; echo ' -l'" | getline finder
+    "{ which rg || { which grep && echo ' -r'; } } | tr -d '\n'; echo ' -l -m 1'" | getline finder
     finder = "+"finder
   }
   if (substr(finder, 1, 1) == "+") {
@@ -86,35 +87,37 @@ function print_array(i, s, f, len) {
   }
 }
 
-# The left scope is found, increment
-$0 ~ scopeBegin { inScope++; }
-
-# The right scope is found, increment
-$0 ~ scopeEnd { inScope--; }
-
-# When we reach the end of the last scope
-inScope == 0 {
-  # If we found at least one match, print the scope
-  if (idxF > 1) {
-    # If the current line contains the scopeEnd save it, otherwise discard it
-    if ($0 ~ scopeEnd)
-      saveLine();
-    print_array();
-  }
-  # In all cases, reset evrything
-  delete stArea;
-  stAreafirstLine = FNR;
-  idx = 1;
-  delete found;
-  idxF = 1;
-}
-
 # Save each line
 {
   saveLine();
 }
 
+# The left scope is found, increment
+$0 ~ scopeBegin { inScope++; scopeFound = 1; }
+
 # The pattern is found, say it !
 $0 ~ pat {
   found[idxF++] = FNR;
+}
+
+# The right scope is found, decrement
+$0 ~ scopeEnd { inScope--; }
+
+# When we reach the end of the last scope
+scopeFound && inScope == 0 {
+  # printf("Print the scope (idxF:%d) (FNR:%d)\n", idxF, FNR);
+  # If we found at least one match, print the scope
+  if (idxF > 1) {
+    # If the current line contains the scopeEnd save it, otherwise discard it
+    # if ($0 ~ scopeEnd)
+    #   saveLine();
+    print_array();
+  }
+  # In all cases, reset everything
+  delete stArea;
+  stAreafirstLine = FNR;
+  idx = 1;
+  delete found;
+  idxF = 1;
+  scopeFound = 0;
 }

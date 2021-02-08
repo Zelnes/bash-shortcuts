@@ -4,6 +4,7 @@ CAN_USE_GIT_COMPLETION="n"
     source /usr/share/bash-completion/completions/git
     CAN_USE_GIT_COMPLETION="y"
 }
+[ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gcommit _git_commit
 
 BRANCH=""
 
@@ -58,7 +59,7 @@ get_gitPS1()
         then
             # If the branch is a SDK, it is cut to print only story/SDK-NUMBER
             # Otherwise, if it's length is greater than 15 it is cut to this length
-	    BRANCH=`echo $BRANCH | sed -r 's/([A-Z]+-#?[0-9]+).*/\1/; t; s/(.{15}).*/\1/'`
+        BRANCH=`echo $BRANCH | sed -r 's/([A-Z]+-#?[0-9]+).*/\1/; t; s/(.{15}).*/\1/'`
         fi
         STATUS=`git status --porcelain`
         if [[ ${#STATUS} -ne 0 ]]
@@ -149,9 +150,9 @@ get_git_ticket_ref()
 gplog()
 {
     local _issue=${1:-$(get_git_ticket_ref)}
-    echo "issue : $_issue"
+    # echo "issue : $_issue"
     shift
-    git log --grep="${_issue}" $@
+    git log --grep="\<${_issue}\>" $@
 }
 [ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gplog _git_log
 
@@ -400,9 +401,38 @@ find_commits_for_changed_files() {
         for (i in arr)
           printf("%s: ", i);
           if (arr[i])
-            print(arr[i])
+            printf("%s", arr[i])
           else
-            print "None"
+            printf("None")
+          printf("\n")
         }
     '
+}
+
+find_commits_for_changed_files_old() {
+    local i
+    local possible_branch_origin=$(git log --format="%D" | sed -rn '; /^origin/{s/,.*$//;p;q}')
+    local branchFrom="${1:-${possible_branch_origin}}"
+    local changedFiles=$(git status --short -uno | awk '{print $NF}')
+    for i in $changedFiles; do
+        git log --name-only --oneline "${branchFrom}".. | awk -v f="$i" '
+            BEGIN {
+                RS="(^|\n)[a-f0-9]{7}"
+            }
+            $0 ~ f {
+                c = RTs c
+            }
+            {
+                RTs = RT
+            }
+            END {
+                gsub(/\n/, " ",c)
+                print f " in " c
+            }'
+    done
+}
+
+# Get the commit hash to be used when rebasing, for several new commits that are to be rebased
+find_oldest_commit_when_rebase() {
+    git merge-base --octopus $(git log --grep="^fixup" --format="%s" | sed 's/^fixup //')
 }

@@ -24,7 +24,7 @@ set_static_title "Picocom BOX"
 if [[ $# -eq 1 ]]; then
 	connect $1
 else
-	for i in {0..3}; do
+	for i in /dev/ttyUSB*; do
 		connect $i && break
 	done
 fi

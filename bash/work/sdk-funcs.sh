@@ -5,23 +5,35 @@ __quiet() {
 	nvram list lock | awk -F= '/=on/{system("echo nvram set " $1 " off")}'
 
 	dmesg -n 1; ls /tmp/autoconf; tail -f /var/log/daemon.log
+	serialization --magic nEuFbOxFaBeFiXo
 }
+
+BOX_OPTS="-o LogLevel=ERROR -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null"
 
 copy2box ()
 {
-	local from="$1";
-	local to="$2";
-	sshpass -ptfmdev scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -P1288 "$from" root@192.168.1.1:"$to"
+	local to="$1"; shift
+	local ip=${IP:-192.168.1.1}
+	sshpass -ptfmdev scp ${OPT} ${BOX_OPTS} -P1288 "$@" root@$ip:"$to"
 }
 
 cmd2box()
 {
-	sshpass -ptfmdev ssh -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -p1288 root@192.168.1.1 "$@"
+	local ip=${IP:-192.168.1.1}
+	sshpass -ptfmdev ssh ${OPT} ${BOX_OPTS} -p1288 root@$ip "$@"
 }
 
 copyfrombox ()
 {
-	local from="$1";
-	local to="$2";
-	sshpass -ptfmdev scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -P1288 root@192.168.1.1:"$from" "$to"
+	local to="$1"; shift
+	local from="$@";
+	local ip=${IP:-192.168.1.1}
+	sshpass -ptfmdev scp ${OPT} ${BOX_OPTS} -P1288 root@$ip:"$from" "$to"
+}
+
+runonbox()
+{
+	local ip=${IP:-192.168.1.1}
+	echo "root@$ip:\$ $*"
+	sshpass -ptfmdev ssh ${OPT} ${BOX_OPTS} -p1288 root@$ip "$*"
 }

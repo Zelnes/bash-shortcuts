@@ -1,7 +1,11 @@
 set $spotify __TO_REPLACE__COMMON_BIN/sp
 bindsym Ctrl+F1 exec $spotify play
+bindsym XF86AudioPause exec $spotify play
+bindsym XF86AudioPlay exec $spotify play
 bindsym Ctrl+F2 exec $spotify prev
+bindsym XF86AudioPrev exec $spotify prev
 bindsym Ctrl+F3 exec $spotify next
+bindsym XF86AudioNext exec $spotify next
 
 set $volume __TO_REPLACE__COMMON_BIN/updateVolumeApp
 # Bind Mute/Unmute
@@ -11,40 +15,38 @@ bindsym XF86AudioRaiseVolume exec $volume + Spotify
 # Bind Volume -
 bindsym XF86AudioLowerVolume exec $volume - Spotify
 
-exec --no-startup-id davmail
+exec --no-startup-id i3-msg '\
+	workspace 3; append_layout /home/mgh/workspace3;\
+	exec spotify;\
+	exec skypeforlinux;\
+	exec pidgin;\
+	rename workspace to "3:Mess";\
+'
 
-exec i3-msg '\
+exec --no-startup-id i3-msg '\
 	workspace 1; \
 	exec i3-sensible-terminal; \
 	rename workspace to "1:Terms" \
 '
-exec i3-msg '\
+exec --no-startup-id i3-msg '\
 	workspace 2;\
 	exec subl;\
 	rename workspace to "2:Subl";\
 '
 
-exec i3-msg '\
+exec --no-startup-id i3-msg '\
 	workspace 8;\
 	exec thunderbird;\
 	rename workspace to "8:Mails";\
 '
 
-exec i3-msg '\
-	workspace 3;\
-	exec spotify;\
-	exec skypeforlinux;\
-	exec gajim;\
-	rename workspace to "3:Mess";\
-'
-
-exec i3-msg '\
+exec --no-startup-id i3-msg '\
 	workspace 5;\
 	exec firefox;\
 	rename workspace to "5:Nav";\
 '
 
-exec i3-msg '\
+exec --no-startup-id i3-msg '\
 	workspace 7;\
 	exec blueman-manager;\
 	exec --no-startup-id sudo wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -i wlp4s0;\
@@ -53,7 +55,7 @@ exec i3-msg '\
 	rename workspace to "7:Ctrl";\
 '
 
-exec i3-msg '\
+exec --no-startup-id i3-msg '\
 	workspace 6;\
 	exec atom;\
 	rename workspace to "6:Atom";\
