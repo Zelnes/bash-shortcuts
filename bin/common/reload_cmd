@@ -1,0 +1,23 @@
+#!/bin/sh
+
+if [ $# -ne 1 ]
+then
+	echo "This script must be run with one argument."
+	echo "This argument is a command name that will be reload, as it was already launched"
+	exit 1
+fi
+
+prog="$1"
+# echo $prog
+# echo ${prog:0:1}
+
+# ps --width 500 -ef -o "%p %a"
+ps=`ps -aux | grep -e "[${prog:0:1}]${prog:1}" | grep -v "$0"`
+# echo $ps
+
+pid=`echo $ps | sed "s/ .*//"`
+# echo "Pid : $pid"
+cmd=`echo $ps | sed "s/.*\($prog\)/\1/"`
+# echo "Cmd : $cmd"
+
+kill -9 $pid && $cmd

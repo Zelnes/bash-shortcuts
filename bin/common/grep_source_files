@@ -1,0 +1,61 @@
+#!/bin/sh
+
+scriptName=$(basename $0)
+
+usage()
+{
+	echo "Usage : $scriptName pattern <directory_to_parse> <file_pattern_to_scan>"
+	echo "The pattern will be given to grep, with the options 'n' and 'i'"
+		echo "Please refer to \`man grep' for more informations"
+	echo "Directory is './' by default"
+}
+
+if [ $# -lt 1 ]; then
+	usage
+	return 1
+fi
+
+pattern="$1"
+echo "Looking for : '$pattern'"
+
+if [ $# -ge 2 ]; then
+	researchDir=$(readlink -f "$2")
+else
+	researchDir=.
+fi
+
+if [ $# -ge 3 ]; then
+	# openSubl=$3
+	file_pattern_to_scan="$3"
+else
+	# openSubl="false"
+	file_pattern_to_scan="*.[ch]"
+fi
+
+# TODO : deal options arguments
+openSubl="false"
+
+researchDir=$(realpath $researchDir)
+echo "         in : '$researchDir'"
+
+sededRD=$(echo $researchDir | sed 's|[/ ]|_|g')
+sededPT=$(echo $pattern     | sed 's|[/ ]|_|g')
+# echo $sededRD
+# echo $sededPT
+
+
+file_res="/tmp/${scriptName}_${sededPT}_${sededRD}.grepped"
+cmd="find $researchDir -type f -name \"${file_pattern_to_scan}\" -exec grep -C 3 -ni -E \"$pattern\" {} +"
+# echo $cmd
+# exit 0
+
+echo $cmd >$file_res
+echo "--------------------------------------------------------------------------------" >>$file_res
+echo "See : $file_res"
+echo -n "Calculating ..."
+eval $cmd >>$file_res 
+echo " Done"
+
+if [ $openSubl != "false" ]; then
+	subl $file_res
+fi

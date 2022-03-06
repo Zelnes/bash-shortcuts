@@ -1,0 +1,50 @@
+#!/bin/bash
+
+current_path=$(dirname $(realpath ${BASH_SOURCE[0]}))
+
+lock() {
+    # i3lock -c 151515
+    # i3lock -t -i "${_FILE}"
+	/home/mgh/lock.sh
+}
+
+_FILE="${1}"; shift
+
+save_layout() {
+    local wkspaces=$(i3-msg -t get_workspaces | jq '.[]|.num')
+    local i DIR="/home/mgh/workspace_auto_save"
+    rm -rf "$DIR"
+    mkdir -p "$DIR"
+    for i in $wkspaces; do
+        echo "Doing $i"
+        i3-save-tree --workspace $i | awk -f "${current_path}/clean_workspace_tree_i3.awk" >"${DIR}/workspace_$i"
+    done
+}
+
+save_layout
+
+case "$1" in
+    lock)
+        lock
+        ;;
+    logout)
+        i3-msg exit
+        ;;
+    suspend)
+        lock && systemctl suspend
+        ;;
+    hibernate)
+        lock && systemctl hibernate
+        ;;
+    reboot)
+        systemctl reboot
+        ;;
+    shutdown)
+        systemctl poweroff
+        ;;
+    *)
+        echo "Usage: $0 {lock|logout|suspend|hibernate|reboot|shutdown}"
+        exit 2
+esac
+
+exit 0

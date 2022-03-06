@@ -1,0 +1,200 @@
+#!/bin/bash
+
+#########################################
+### Get function requires no argument
+__pa_get_short_list()
+{
+	pactl list short "$1"
+}
+
+__pa_get_bluez_num()
+{
+	__pa_get_short_list "$1" | awk '/bluez/{print $1}'
+}
+
+get_idx() {
+	__pa_get_short_list "$1" | awk 'BEGIN{p="0"} $2 ~ "'$2'"{p=$1} END{print p}'
+}
+
+get_idx_def() {
+	pacmd list-$1 | awk '/* index/{print $NF}'
+}
+
+get_idx_or_def() {
+	local res=$(__pa_get_short_list "$1" | awk '$2 ~ "'$2'"{print $1}')
+	[ -z "$res" ] && res=$(get_idx_def "$1")
+	echo "$res"
+}
+
+get_client_list()
+{
+	pactl list clients short | awk 'NR>1{a[$NF] = 1} END{for (i in a) print i}'
+}
+
+# pactl list sinks short | awk $[1-2]
+set_default_sink()
+{
+	local sink_id="$1"
+	pacmd set-default-sink "$sink_id"
+}
+
+set_default_sink_bluez()
+{
+	set_default_sink "$(__pa_get_bluez_num sinks)"
+}
+
+set_default_source_bluez()
+{
+	pacmd set-default-source "$(__pa_get_short_list sources | awk '!/monitor/ && /bluez/{print $1}')"
+}
+
+play_sound() {
+	paplay "$1"
+}
+
+# pactl list sinks short | awk $[1-2]
+toggle_sink_pause()
+{
+	local sink_id="$1" pause=0
+	if pactl list sinks short | grep "^$sink_id" | grep -wq RUNNING; then
+		pause=1
+	fi
+	# [ "$pause" -eq 1 ] && { play_sound /usr/share/sounds/freedesktop/stereo/dialog-information.oga; sleep 0.2; }
+	pacmd suspend-sink "$sink_id" "$pause"
+	[ "$pause" -eq 1 ] || play_sound /usr/share/sounds/gnome/default/alerts/drip.ogg
+}
+
+toggle_bluez() {
+	toggle_sink_pause "$(__pa_get_bluez_num sinks)"
+}
+
+# get_client_list
+client_ids()
+{
+	pactl list clients short | awk -v cmd="$1" '$NF == cmd {print $1}'
+}
+
+# #
+# set_bluez_profile() {
+# 	local profile=1 ou 2 ou plus
+
+# 	pacmd set-card-profile $(__pa_get_bluez_num cards) a2dp_sink
+# }
+
+# $1 : get_client_list
+# $2 : pactl list sinks short | awk $[1-2]
+client_id_to_sink()
+{
+	local client_id="$1" sink_id="$2" i
+	for i in $(__pa_get_short_list sink-inputs | awk -v id="$client_id" 'id == "any" || $3 == id{print $1}')
+	do
+		pacmd move-sink-input "$i" "$sink_id"
+	done
+}
+
+FIREFOX_SINK="null-firefox"
+FIREFOX_SINK_DESC="Firefox_Virtual_Sink"
+SPOTIFY_SINK="null-spotify"
+SPOTIFY_SINK_DESC="Spotify_Virtual_Sink"
+
+add_null_module_and_link_app() {
+	local client="$1" sink_dst="$2" sink_name="$3" sink_desc="${4:-${sink_name}_Virtual_Sink}"
+	# Test if sink_name already exists
+	local idx=-1 cpt=0
+	while [ "$idx" -le 0 ]; do
+		[ "$idx" != "-1" ] && pactl load-module module-null-sink sink_name="$sink_name" sink_properties=device.description="$sink_desc"
+		idx=$(get_idx sources "$sink_name")
+		[ $((cpt++)) -eq 10 ] && {
+			echo "Unable to create module 'pactl load-module module-null-sink sink_name="$sink_name" sink_properties=device.description="$sink_desc"'"
+			return 1
+		}
+	done
+
+	local idx_dst=$(get_idx_or_def sinks "$sink_dst")
+	# Check if there's no existing module already
+	local ret="$(pactl list modules | awk '
+		BEGIN { RS="\n\n" }
+		/module-loopback/ && /source='$idx'/ && /sink='$idx_dst'/ {
+			sub("#", "", $2);
+			print $2
+		}
+	')"
+	[ -z "$ret" ] && pactl load-module module-loopback source=$idx sink="$idx_dst"
+	# Move every client source to the newly sink
+	local i
+	for i in $(client_ids "$client"); do
+		client_id_to_sink "$i" "$sink_name"
+	done
+}
+
+main_PA() {
+	add_null_module_and_link_app firefox-esr bluez "${FIREFOX_SINK}" "${FIREFOX_SINK_DESC}"
+	add_null_module_and_link_app spotify bluez "${SPOTIFY_SINK}" "${SPOTIFY_SINK_DESC}"
+}
+
+clean_modules_loopback() {
+	local line source sink num
+	while read line; do
+		eval "num=$(echo "$line" | sed -rn 's/ +/\n/g; s/module-loopback//p')"
+		[ -z "$num" ] && continue
+		{
+			__pa_get_short_list sinks | grep -qw "^$sink" || \
+			__pa_get_short_list sources | grep -qw "^$source" || \
+			[ "$sink" = "1" ]
+		} && pactl unload-module "$num"
+	done <<<$(__pa_get_short_list modules)
+}
+
+# $1: one of [modules,sinks,sources,sink-inputs,source-outputs,clients,samples,cards]
+# $2: index of the type $1
+# Use 'pactl list short <TYPE>' to get the index
+list_type_for_name ()
+{
+	local type="$1" idx="$2";
+	pactl list "$type" |
+	awk -v idx="#$idx" '
+		BEGIN {
+			RS="\n\n"
+		}
+		$0 ~ idx
+	'
+}
+
+# This function lists the profiles cards
+# $1: index card for which the profiles are required
+# $2: pattern for a specific profile
+# Output : list of profiles availables and last line is the current
+list_profiles_card()
+{
+	local idx="$1" pat="$2"
+	LANG=C list_type_for_name cards "$idx" |
+		awk -v pat="$pat" '
+			/^\t[^\t]/ {
+				p = ($1 ~ /Profiles/);
+				next;
+			}
+			p != 0 && $0 ~ pat {
+				print substr($1, 1, length($1) - 1);
+			}
+		'
+}
+
+# This function get the current profile for cards
+# $1: index card for which the profiles are required
+list_current_profile_card() {
+	local idx="$1"
+	LANG=C list_type_for_name cards "$idx" |
+		awk '/Active Profile/ { print $NF }'
+}
+
+list_profiles_card_bluez() {
+	list_profiles_card "$(__pa_get_bluez_num cards)" "$1"
+}
+
+list_current_profile_card_bluez() {
+	list_current_profile_card "$(__pa_get_bluez_num cards)"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+	echo "Executed"
+fi

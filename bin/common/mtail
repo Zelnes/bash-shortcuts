@@ -1,0 +1,142 @@
+#!/bin/bash
+
+readonly FILE_SED="/tmp/file_sed"
+readonly FILE_PID="/tmp/my_pid_$$"
+
+function usage(){
+	printf "Usage for $0 :\n"
+	printf "\t-f FILE     : File to watch. This option can appear multiple time\n"
+	printf "\t-w          : Words/regular expressions to highlight. This option can appear multiple time\n"
+	printf "\t-h          : Prints this message\n"
+	printf "Help todo\n"
+}
+
+if [ $# -eq 0 ]; then
+	usage
+	exit 0
+fi
+
+tail_sed() {
+	local flt="$1"; shift
+	local pth="$1"; shift
+
+	( tail -f ${flt} & echo $! >&3 ) 3>"${FILE_PID}" | sed -r "$(create_sed ${pth})"
+}
+
+kill_tail() {
+	kill "$(cat "${FILE_PID}")" && rm -f "${FILE_PID}"
+}
+
+replace-spaces() {
+	local _file="$1" line
+	local pth
+
+	while read -r line; do
+		pth="${pth} ${line// /_-space-_}"
+	done < "${_file}"
+
+	echo "${pth}"
+}
+
+clean_exit() {
+	kill_tail
+	echo "Done!"
+}
+
+main() {
+	local perso_funcs="$(realpath ~/docs/shared/bash_shortcuts/bash/personal_functions.sh)"
+	# File List Tailed
+	local flt
+	# Pattern To Highlight
+	local pth_args pth_all
+	# Number of known colors
+	local nkc
+
+	if [[ -f ${perso_funcs} ]]; then
+		source ${perso_funcs}
+	else
+		>&2 echo "No ${perso_funcs} found"
+	fi
+
+	while true ; do
+		if [[ $# -eq 0 ]]; then
+			break
+		fi
+	    case "$1" in
+	        -h|--help|\?) usage;
+	            exit 0;;
+	        -w) check_args $# 2 $1;
+				pth_args="${pth_args} ${2// /_-space-_}";
+				shift 2;;
+	        -f) check_args $# 2 $1;
+				flt="${flt} ${2}";
+				shift 2;;
+			-*) echo "Unkwown option ${1}"
+				shift;;
+	    esac
+	done
+
+	pth_all="${pth_args}"
+
+	trap clean_exit EXIT
+	touch "${FILE_SED}"
+
+	tail_sed "${flt}" "${pth_all}" &
+
+	inotifywait -mq -e modify "${FILE_SED}" | \
+	while read line; do
+		pth_all="$(replace-spaces "${FILE_SED}") ${pth_args}"
+		kill_tail
+		tail_sed "${flt}" "${pth_all}" &
+	done
+
+	clean_exit
+}
+
+# List of Colors is an indexed array
+# $1 : Attribute, ie the first value in the formatting (the background)
+# $2 : Attribute, the second value in the formatting (the style)
+_add_color_only()
+{
+	typeset -a loc # I want to be sure to work on an array. Tested : doesn't override the value
+	local cpt=${#loc[@]}
+
+	for i in {31..37} {90..97} 39;
+	do
+		loc[${cpt}]="${1};${2};${i}"
+		cpt=$((${cpt} + 1))
+	done
+}
+
+create_colors()
+{
+	unset loc
+	typeset -a loc
+
+	# Adding Dark Background Bold
+	_add_color_only
+	size_loc=${#loc[@]}
+}
+
+create_sed()
+{
+	local css=""
+	for i in $@; do
+		if [[ ! -z "${css}" ]]; then
+			css="${css}; "
+		fi
+		css="${css}s#(${i//_-space-_/ })#\x1B[01;35m\1\x1B[m#g"
+	done
+	echo "${css}"
+}
+
+check_args()
+{
+	if [[ $1 -lt $2 ]]; then
+		usage
+		1>&2 echo "Failed for option $3"
+		exit 0
+	fi
+}
+
+main "$@"

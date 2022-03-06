@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export WINEPREFIX=/home/mgh/.config/SimplicityStudio/v4/studio-wine
+/opt/SimplicityStudio/run_studio.sh

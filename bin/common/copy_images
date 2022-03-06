@@ -1,0 +1,9 @@
+#!/bin/bash
+
+image=$1
+dir=bin/targets/broadcom/nb6vac-uClibc/images
+
+echo cp $dir/openwrt-nb6vac-sfr-fs-image-128-nand-ubi.w /tftpboot/${image/-rom/}
+cp $dir/openwrt-nb6vac-sfr-fs-image-128-nand-ubi.w /tftpboot/${image/-rom/}
+echo cp $dir/openwrt-nb6vac-sfr-cferom-fs-image-128-nand-ubi.w /tftpboot/${image}
+cp $dir/openwrt-nb6vac-sfr-cferom-fs-image-128-nand-ubi.w /tftpboot/${image}

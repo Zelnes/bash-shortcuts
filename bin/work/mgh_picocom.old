@@ -1,0 +1,34 @@
+#!/bin/bash
+
+readonly PID_F="/tmp/pico_pid"
+readonly pid=$$
+created=0
+
+[[ -f ${PID_F} ]] && [[ ! -d /proc/$(cat ${PID_F}) ]] && rm ${PID_F}
+
+if [[ ! -f ${PID_F} ]]; then
+	# Write the PID to a file to be able to send command easily
+	echo -n "$pid" >${PID_F}
+	created=1
+fi
+
+connect()
+{
+	local dev=$1
+	[[ "$dev" =~ ^[0-9]+$ ]] && dev=/dev/ttyUSB${dev}
+	[ -e "$dev" ] && picocom -b 115200 $dev
+}
+
+set_static_title "Picocom BOX"
+# Will try to connect to serial port on /dev/ttyUSB0 with a baudrate of 115200
+if [[ $# -eq 1 ]]; then
+	connect $1
+else
+	for i in /dev/ttyUSB*; do
+		connect $i && break
+	done
+fi
+
+if [[ ${created} -eq 1 ]]; then
+	rm -f ${PID_F}
+fi

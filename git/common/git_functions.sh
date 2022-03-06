@@ -1,9 +1,11 @@
+#!/bin/bash
 
 CAN_USE_GIT_COMPLETION="n"
 [ -f /usr/share/bash-completion/completions/git ] && {
     source /usr/share/bash-completion/completions/git
     CAN_USE_GIT_COMPLETION="y"
 }
+[ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gcommit _git_commit
 
 BRANCH=""
 
@@ -22,14 +24,18 @@ BRANCH=""
 # 160_branch_mgh
 # $ get_git_branch 158
 # 158_branch
-function get_git_branch()
+get_git_branch()
 {
-    local branch="$1"
-    if [[ -z "$branch" ]]
+    local br="$1"
+    if [[ -z "$br" ]]
     then
-        git branch -a 2> /dev/null | sed -e '/^[^*]/d' -e 's/* //'
+        git branch 2>/dev/null | sed -n '/^*/s/*[[:blank:]]*//p'
     else
-        git branch -a | grep -E "$branch" | grep -oE '[^ ]+$' | sed -r -e 's#remotes/##' | head -n1
+        # Sed :
+        #  - pattern match br (bash parameter expansion, to prevent char '/' from branch pattern)
+        #  - Only keep what follows the last blank or "remotes/"
+        #  - print the line and exit (the first match only is kept)
+        git branch -a 2>/dev/null | sed -rn "/${br//\//\\/}/{s|.*[[:blank:]]+(remotes/)?||;p;q}"
     fi
 }
 
@@ -38,24 +44,24 @@ function get_git_branch()
 # If yes, retrieves the branch name
 # and then test if the repo have been modified (and needs commit(s))
 # If the repo is not 'clean', the "git" prompt color is reversed
-function get_gitPS1()
+get_gitPS1()
 {
-    git rev-parse --git-dir &>/dev/null
-    local __st=$?
-    if [[ $__st -eq 0 ]]
-    then
-        BRANCH=`get_git_branch`
-        if [[ ${#BRANCH} -gt 15 ]]
-        then
+    if [ "${NO_GIT_PS1}" = "y" ] || ! which git >/dev/null; then
+        my_gitPS1=""
+        return 0
+    fi
+
+    if git rev-parse --git-dir &>/dev/null; then
+        BRANCH=$(get_git_branch)
+        if [[ ${#BRANCH} -gt 15 ]]; then
             # If the branch is a SDK, it is cut to print only story/SDK-NUMBER
             # Otherwise, if it's length is greater than 15 it is cut to this length
-            BRANCH=`echo $BRANCH | sed -r 's/(SDK-[0-9]+).*/\1/' | sed -r 's/(.{15}).*/\1/'`
+            BRANCH=$(echo $BRANCH | sed -r 's/([A-Z]+-#?[0-9]+).*/\1/; t; s/(.{15}).*/\1/')
         fi
-        STATUS=`git status --porcelain`
-        if [[ ${#STATUS} -ne 0 ]]
+        if [ -n "$(git status --porcelain)" ]
         then
             # Reverse 'git' color to show change
-            __git="\001\e[7m\002git\001\e[27m\002"
+            __git="$(reverse_color_text git)"
         else
             __git="git"
         fi
@@ -68,12 +74,13 @@ function get_gitPS1()
 
 # Same as get_gitPS1(), except that nothing is done
 # yet to show if the repo is clean or not
-function get_svnPS1()
+get_svnPS1()
 {
-    local __infos=`svn info 2>/dev/null`
+    which svn >/dev/null || return
+    local __infos=$(svn info 2>/dev/null)
     if [[ "$__infos" != "" ]]
     then
-        BRANCH=`echo $__infos | sed -e 's/.*branches\///' -e 's/ .*//'`
+        BRANCH=$(echo $__infos | sed -e 's/.*branches\///' -e 's/ .*//')
         my_svnPS1="[svn $BRANCH]"
     else
         my_svnPS1=""
@@ -102,6 +109,7 @@ git_cd_n()
         cd $gitD
     fi
 }
+export -f git_cd_n
 
 # Change directory to git top level directory
 # Example : /home/me/my_git is a git directory, ie it contains .git
@@ -123,22 +131,27 @@ alias glog='git log --oneline -n '
 
 # Prints git status with short output (by default)
 # Can be completed with 'git status' other arguments
-alias gst='git -c color.status=always status -s | awk "{print NR\"\t\"\$0}"'
+gst() {
+    git -c color.status=always status -s | awk '{ print NR "\t" $0}'
+}
 
 get_git_ticket_ref()
 {
-    if [[ -z "$1" ]]; then
-        b=`get_git_branch`
+    if [ -z "$1" ]; then
+        get_git_branch
     else
-        b=${1}
-    fi
-    echo ${b} | grep -o -E "[A-Z]+-[0-9]+"
+        echo "${1}"
+    fi | grep -o -E "([A-Z]+[-_])+#?[0-9]+"
 }
 
+# Git lg on commits that matches either the first parameter, or the ticket
+# ref if the parameter is empty
 gplog()
 {
-    local _issue=`get_git_ticket_ref`
-    git log --grep="${_issue}" $@
+    local _issue=${1:-$(get_git_ticket_ref)}
+    # echo "issue : $_issue"
+    shift
+    git lg --grep="\<${_issue}\>" "$@"
 }
 [ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gplog _git_log
 
@@ -150,16 +163,13 @@ gplog()
 # Works for NBX-NUMBER ;) # Tested on nbx/feature/branding_NBX-3579_webui branch on trunk-next
 gcommit()
 {
-    local branch=`get_git_branch`
-    if [[ ! -z "$branch" ]]
-    then
-        if [[ ! -z "$1" ]]
-        then
-            local _issue=`get_git_ticket_ref ${branch}`
+    local branch=$(get_git_branch)
+    if [ -n "$branch" ]; then
+        if [ -n "$1" ]; then
+            local _issue=$(get_git_ticket_ref ${branch})
+            [ -z "$_issue" ] || _issue="$_issue "
             # echo $_issue
-            local _cmd="git commit -m \"$_issue $@\""
-            echo $_cmd
-            eval "$_cmd"
+            runCmdDbg git commit -m "${_issue}$*"
         else
             echo "No argument given. Exiting..."
             return 1
@@ -171,41 +181,6 @@ gcommit()
 }
 [ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gcommit _git_commit
 
-# Sends and executes a command on all the terms opened
-# It needs ttyecho
-send_command_to_all_terminal()
-{
-    if [[ -z "`which ttyecho`" ]]; then
-        echo "ttyecho not found. Exiting..."
-        return 1
-    fi
-
-    local device=`for p in $(pidof bash); do readlink -f /proc/$p/fd/0; done | sort -u`
-
-    for d in $device
-    do
-        if [[ $d == /dev/pts/* ]]
-        then
-            ttyecho -n $d $@
-        fi
-    done
-    # ttyecho -n
-}
-
-# Source the bashrc in the home directory
-source_home()
-{
-    source ~/.bashrc
-}
-
-# Resource all terms opened with the ~/.bashrc
-# useful when a command is updated and needs to be present
-# on all terms
-source_all()
-{
-    send_command_to_all_terminal source ~/.bashrc
-}
-
 # Push a git branch to it's upstream branch on the server
 # If no paramater, the current branch is pushed
 # Otherwise, same behaviour as get_git_branch to retrieve a branch name
@@ -213,21 +188,23 @@ source_all()
 gpush()
 {
     local force=""
-    if [[ "$1" = "-f" ]]; then
+    if [ "$1" = "-f" ]; then
         force="-f"
         shift
-    elif [[ "$2" = "-f" ]]; then
+    elif [ "$2" = "-f" ]; then
         force="-f"
     fi
 
-    local branch=`get_git_branch "$1"`
-    if [[ -z "$branch" ]]
-    then
+    local branch=$(get_git_branch "$1")
+    if [ -z "$branch" ]; then
         echo "No branch found for pattern $1"
         return 1
     fi
     shift
-    cmd="git push ${force} $@ origin $branch:`git rev-parse --symbolic-full-name $branch@{upstream} | sed -r 's#.*/origin/##'`"
+    local remote=$(git remote | head -n 1)
+    runCmdDbg git push ${force} $@ ${remote} $branch:$(git rev-parse --symbolic-full-name $branch@{upstream} | sed -r "s#.*/${remote}/##")
+
+    # cmd="git push ${force} $@ ${remote} $branch:$(git rev-parse --symbolic-full-name $branch@{upstream} | sed -r "s#.*/${remote}/##")"
     echo $cmd
     eval $cmd
 }
@@ -237,7 +214,8 @@ gpush()
 # Then checkouts on the given branch
 gcheckout()
 {
-    local branch=`get_git_branch "$1" | sed -r 's#.*origin/##'`
+    local remote=$(git remote | head -n 1)
+    local branch=$(get_git_branch "$1" | sed -r "s#.*${remote}/##")
     if [[ -z "$branch" ]]
     then
         echo "No branch found for pattern $1"
@@ -340,7 +318,7 @@ gadd()
 
     if [[ ! -z "${_mfiles}" ]]
     then
-        git add ${_mfiles}
+        git add --verbose ${_mfiles}
         echo "Added : ${_mfiles}"
     fi
 }
@@ -354,4 +332,95 @@ gamend()
         no="--no-edit"
     fi
     git commit --amend ${no}
+}
+
+# Will print, for each current modified files, every commit
+find_commits_for_changed_files() {
+    local possible_branch_origin=$(git log --format="%D" | sed -rn '; /^origin\/l?sdk-dev/{s/,.*$//;p;q}')
+    local branchFrom=${1:-${possible_branch_origin}}
+    local files=$(git status --short -uno | awk '{c = c "," $NF} END { print c }')
+    # files starts with a comma, remove it when passing it to awk
+    git log --name-only --format="__sep__ %h" "${branchFrom}".. | awk -v files="${files/,/}" '
+        BEGIN {
+            RS = "__sep__";
+            CSEP = " "
+            split(files, arrF, ",")
+        }
+        NF == 0 { next; }
+
+        {
+            commit = $1
+            for (i = 2; i <= NF; ++i) {
+              for (j in arrF) {
+                if ($i == arrF[j]) {
+                  arr[$i] = arr[$i] commit CSEP;
+                }
+              }
+            }
+        }
+        END {
+        for (i in arr)
+          printf("%s: ", i);
+          if (arr[i])
+            printf("%s", arr[i])
+          else
+            printf("None")
+          printf("\n")
+        }
+    '
+}
+
+find_commits_for_changed_files_old() {
+    local i
+    local possible_branch_origin=$(git log --format="%D" | sed -rn '; /^origin/{s/,.*$//;p;q}')
+    local branchFrom="${1:-${possible_branch_origin}}"
+    local changedFiles=$(git status --short -uno | awk '{print $NF}')
+    for i in $changedFiles; do
+        git log --name-only --oneline "${branchFrom}".. | awk -v f="$i" '
+            BEGIN {
+                RS="(^|\n)[a-f0-9]{7}"
+            }
+            $0 ~ f {
+                c = RTs c
+            }
+            {
+                RTs = RT
+            }
+            END {
+                gsub(/\n/, " ",c)
+                print f " in " c
+            }'
+    done
+}
+
+find_commits_for_changed_files_new() {
+    local possible_branch_origin=$(git log --format="%D" | sed -rn '; /^origin\/sve-dev/{s/,.*$//;p;q}')
+    local branchFrom=${1:-${possible_branch_origin}}
+    local files=$(git status --short -uno | awk '{c = c "," $NF} END { print c }')
+    # files starts with a comma, remove it when passing it to awk
+    git log --name-only --format="__sep__ %h" "${branchFrom}.." | awk -v files="$files" '
+        BEGIN {
+            RS = "__sep__";
+            CSEP = " ";
+            split(files, modF, ",")
+        }
+        NF != 0 {
+            commit=$1;
+            for (i = 2; i <= NF; ++i) {
+                arrF[$i] = arrF[$i] commit CSEP;
+            }
+        }
+        END {
+            for (f in modF) {
+                i = modF[f];
+                if (i)
+                    printf("%s : %s\n", i, arrF[i])
+            }
+        }
+    '
+}
+
+# Get the commit hash to be used when rebasing, for several new commits that are to be rebased
+find_oldest_commit_when_rebase() {
+    git merge-base --octopus $(git log --grep="^fixup" --format="%s" | sed 's/^fixup //')
 }

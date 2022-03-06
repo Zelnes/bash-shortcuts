@@ -1,2 +1,6 @@
 bash/personal_functions.sh
 /tmp/*
+ttyecho
+i3/config
+extra-sources.sh
+TMP_FILE

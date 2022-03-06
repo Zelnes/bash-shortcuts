@@ -1,0 +1,1 @@
+PREREQ_LIST+=spotify

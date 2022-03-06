@@ -1,0 +1,76 @@
+[user]
+	name = Mehdi GHESH
+	email = mehdi.ghesh@atos.net
+[core]
+#	editor = 'subl' --wait
+	editor = code --wait
+	excludesfile = /home/mgh/.gitignore
+#	hooksPath = /home/mgh/gitHooks/
+
+[alias]
+	tree = log --graph --decorate --pretty=oneline --abbrev-commit
+	unstage = reset HEAD --
+	last = log -1
+	cm = commit -m
+	fp = fetch --prune
+	# Current branch
+	cbr= rev-parse --abbrev-ref HEAD
+	lbr= rev-parse --abbrev-ref @{-1}
+	mabr = "!f() {\
+		printf \"%s -> %s\\n\" $(git rev-parse --abbrev-ref HEAD) $(git rev-parse --symbolic-full-name --abbrev-ref @{upstream}); \
+	}; f"
+	# Delete all local branches but master and the current one, only if they are fully merged with master.
+	# First param (optional) is a pattern to match specifics branches
+	br-delete-useless-sub = "!f(){\
+		local concern=$(echo $1 | sed 's,/,\\\\/,g; s,^,/,; s,$,/,');\
+		git branch | sed -n '/^\\*/!{/^[[:blank:]]*master/!{'${concern}'p}}' | xargs -n 1 -I_p git branch $2 _p;\
+	}; f"
+	br-delete-useless = "!f() { git br-delete-useless-sub \"$1\" -d; }; f"
+	br-delete-useless-force = "!f() { git br-delete-useless-sub \"$1\" -D; }; f"
+	# Delete all local branches but master and the current one.
+	# br-delete-useless-force = "!f(){\
+	# 	local concern=${1:+/${1}/};\
+	# 	git branch | sed -n '/^\\*/!{/^[[:blank:]]*master/!{'${concern}'p}}' | xargs -I_p git branch -D _p;\
+	# }; f"
+	# hidden-echo-last-sprint = "!f() {\
+	# 	git branch -a | sed -rn 's/.*(sdk-sprint-[0-9]+)[^0-9]?.*/\\1/p' | sort -Vu | tail -n 1;\
+	# }; echo $(f)"
+	# sprint = "!git checkout $(git hidden-echo-last-sprint)"
+	# rebase-sprint = "!git rebase $(git remote | head -n 1)/$(git hidden-echo-last-sprint)"
+	# Last branch
+	# Checkouts to the last known branch in the current dir, -v available
+	lb ="!$(git config --get core.hookspath)/last-checkout.sh"
+	# Hidden Current Remote
+	hidden-CR = "!git rev-parse --abbrev-ref --symbolic-full-name @{u} | sed 's:/.*::'"
+	dev = "checkout sdk-dev"
+	rebase-dev = "!git rebase $(git hidden-CR)/sdk-dev"
+	upush = "!f() { git push -u ${1} $(git cbr); }; f"
+	blamel = "!f() { { echo $GIT_PREFIX; git blame "$@"; } | less; }; f"
+	rebase-branch = "!f() {\
+		local c=$(git merge-base origin/sdk-dev HEAD);\
+		git rebase -i $c;\
+	}; f"
+	compare = difftool --dir-diff --tool=meld
+	lg = log --pretty=format:'%Cred%h%Creset %C(bold blue)%an%Creset - %Cgreen%cr%Creset -%C(yellow)%d%Creset %s' --abbrev-commit
+	lg2 = log --pretty=format:'- %s' --abbrev-commit
+
+[pager]
+	diff = "sed -r ':a s/([[:blank:]+-]*)\\t/\\1◦◦/; t a' | less"
+
+[difftool]
+	prompt = false
+
+[diff]
+	tool = meld
+	guitool = meld
+
+[merge]
+	tool = meld
+
+# for i in branch.$branch.merge branch.$branch.pushRemote branch.$branch.remote branch.$branch.mergeOptions   branch.$branch.rebase; do echo "$i : $(git config $i)"; done
+[cola]
+	spellcheck = false
+[gui]
+	diffopts = 
+[url "https://mghesh:MTQ5ODgxMzAzNDAxOlbb9UYPBTUDUa9b8wYdeUok2wPf@bitbucket.tv.sfr.net"]
+	insteadOf = https://bitbucket.tv.sfr.net

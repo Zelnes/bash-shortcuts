@@ -1,0 +1,38 @@
+#!/bin/bash
+
+if [ $# -gt 2 ]
+then
+	echo "Usage : $0 <project_directory (./ by default)> {y}"
+	echo "If the second argument is 'y', then sublime will be openned with the given directory"
+	return 1
+fi
+
+if [ $# -ge 1 ]
+then
+	dir="$1"
+else
+	dir=.
+fi
+
+# This line is to protect against path like "a really good path name/isn_t_it"
+# echo "$dir" | sed 's| |\\ |g'
+
+realdir="`realpath "$dir"`"
+# echo "realdir : '$realdir'"
+realpath="$realdir/.clang_complete"
+tmp=${realpath}.tmp
+# echo "realpath : '$realpath'"
+
+find "$realdir" -type f -name '*.h' -or -name '*.hpp' | sed -r 's|(.+)/[^/]+$|-I\1|' | sort | uniq >${tmp}
+
+# Edited, but forgot why \o/
+# for line in `cat ${tmp}`; do
+# 	echo $line |
+# done
+
+echo "File \"$realpath\" created"
+
+if [ $# -ge 2 ]
+then
+	subl "$realdir"
+fi
