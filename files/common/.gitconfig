@@ -1,12 +1,12 @@
-# Bitbucket Token for this computer
-# MTQ5ODgxMzAzNDAxOlbb9UYPBTUDUa9b8wYdeUok2wPf
 [user]
 	name = Mehdi GHESH
-	email = mehdi.ghesh@sfr.com
+	email = mehdi.ghesh@atos.net
 [core]
 #	editor = 'subl' --wait
 	editor = code --wait
-	hooksPath = /home/mgh/gitHooks/
+	excludesfile = /home/mgh/.gitignore
+#	hooksPath = /home/mgh/gitHooks/
+
 [alias]
 	tree = log --graph --decorate --pretty=oneline --abbrev-commit
 	unstage = reset HEAD --
@@ -23,7 +23,7 @@
 	# First param (optional) is a pattern to match specifics branches
 	br-delete-useless-sub = "!f(){\
 		local concern=$(echo $1 | sed 's,/,\\\\/,g; s,^,/,; s,$,/,');\
-		git branch | sed -n '/^\\*/!{/^[[:blank:]]*master/!{'${concern}'p}}' | xargs -I_p git branch $2 _p;\
+		git branch | sed -n '/^\\*/!{/^[[:blank:]]*master/!{'${concern}'p}}' | xargs -n 1 -I_p git branch $2 _p;\
 	}; f"
 	br-delete-useless = "!f() { git br-delete-useless-sub \"$1\" -d; }; f"
 	br-delete-useless-force = "!f() { git br-delete-useless-sub \"$1\" -D; }; f"
@@ -51,7 +51,8 @@
 		git rebase -i $c;\
 	}; f"
 	compare = difftool --dir-diff --tool=meld
-
+	lg = log --pretty=format:'%Cred%h%Creset %C(bold blue)%an%Creset - %Cgreen%cr%Creset -%C(yellow)%d%Creset %s' --abbrev-commit
+	lg2 = log --pretty=format:'- %s' --abbrev-commit
 
 [pager]
 	diff = "sed -r ':a s/([[:blank:]+-]*)\\t/\\1◦◦/; t a' | less"

@@ -1,3 +1,4 @@
+#!/bin/bash
 
 CAN_USE_GIT_COMPLETION="n"
 [ -f /usr/share/bash-completion/completions/git ] && {
@@ -45,24 +46,19 @@ get_git_branch()
 # If the repo is not 'clean', the "git" prompt color is reversed
 get_gitPS1()
 {
-    [ "${NO_GIT_PS1}" = "y" ] && {
+    if [ "${NO_GIT_PS1}" = "y" ] || ! which git >/dev/null; then
         my_gitPS1=""
         return 0
-    }
+    fi
 
-    git rev-parse --git-dir &>/dev/null
-    local __st=$?
-    if [[ $__st -eq 0 ]]
-    then
-        BRANCH=`get_git_branch`
-        if [[ ${#BRANCH} -gt 15 ]]
-        then
+    if git rev-parse --git-dir &>/dev/null; then
+        BRANCH=$(get_git_branch)
+        if [[ ${#BRANCH} -gt 15 ]]; then
             # If the branch is a SDK, it is cut to print only story/SDK-NUMBER
             # Otherwise, if it's length is greater than 15 it is cut to this length
-        BRANCH=`echo $BRANCH | sed -r 's/([A-Z]+-#?[0-9]+).*/\1/; t; s/(.{15}).*/\1/'`
+            BRANCH=$(echo $BRANCH | sed -r 's/([A-Z]+-#?[0-9]+).*/\1/; t; s/(.{15}).*/\1/')
         fi
-        STATUS=`git status --porcelain`
-        if [[ ${#STATUS} -ne 0 ]]
+        if [ -n "$(git status --porcelain)" ]
         then
             # Reverse 'git' color to show change
             __git="$(reverse_color_text git)"
@@ -80,10 +76,11 @@ get_gitPS1()
 # yet to show if the repo is clean or not
 get_svnPS1()
 {
-    local __infos=`svn info 2>/dev/null`
+    which svn >/dev/null || return
+    local __infos=$(svn info 2>/dev/null)
     if [[ "$__infos" != "" ]]
     then
-        BRANCH=`echo $__infos | sed -e 's/.*branches\///' -e 's/ .*//'`
+        BRANCH=$(echo $__infos | sed -e 's/.*branches\///' -e 's/ .*//')
         my_svnPS1="[svn $BRANCH]"
     else
         my_svnPS1=""
@@ -134,25 +131,27 @@ alias glog='git log --oneline -n '
 
 # Prints git status with short output (by default)
 # Can be completed with 'git status' other arguments
-alias gst='git -c color.status=always status -s | awk "{print NR\"\t\"\$0}"'
+gst() {
+    git -c color.status=always status -s | awk '{ print NR "\t" $0}'
+}
 
 get_git_ticket_ref()
 {
-    local b
-    if [[ -z "$1" ]]; then
-        b=`get_git_branch`
+    if [ -z "$1" ]; then
+        get_git_branch
     else
-        b=${1}
-    fi
-    echo ${b} | grep -o -E "[A-Z]+-#?[0-9]+"
+        echo "${1}"
+    fi | grep -o -E "([A-Z]+[-_])+#?[0-9]+"
 }
 
+# Git lg on commits that matches either the first parameter, or the ticket
+# ref if the parameter is empty
 gplog()
 {
     local _issue=${1:-$(get_git_ticket_ref)}
     # echo "issue : $_issue"
     shift
-    git log --grep="\<${_issue}\>" $@
+    git lg --grep="\<${_issue}\>" "$@"
 }
 [ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gplog _git_log
 
@@ -164,17 +163,13 @@ gplog()
 # Works for NBX-NUMBER ;) # Tested on nbx/feature/branding_NBX-3579_webui branch on trunk-next
 gcommit()
 {
-    local branch=`get_git_branch`
-    if [[ ! -z "$branch" ]]
-    then
-        if [[ ! -z "$1" ]]
-        then
-            local _issue=`get_git_ticket_ref ${branch}`
-            [ -n "$_issue" ] && _issue="$_issue "
+    local branch=$(get_git_branch)
+    if [ -n "$branch" ]; then
+        if [ -n "$1" ]; then
+            local _issue=$(get_git_ticket_ref ${branch})
+            [ -z "$_issue" ] || _issue="$_issue "
             # echo $_issue
-            local _cmd="git commit -m \"${_issue}$@\""
-            echo $_cmd
-            eval "$_cmd"
+            runCmdDbg git commit -m "${_issue}$*"
         else
             echo "No argument given. Exiting..."
             return 1
@@ -186,41 +181,6 @@ gcommit()
 }
 [ "${CAN_USE_GIT_COMPLETION}" == "y" ] && __git_complete gcommit _git_commit
 
-# Sends and executes a command on all the terms opened
-# It needs ttyecho
-send_command_to_all_terminal()
-{
-    if [[ -z "`which ttyecho`" ]]; then
-        echo "ttyecho not found. Exiting..."
-        return 1
-    fi
-
-    local device=$(for p in $(pidof bash); do readlink -f /proc/$p/fd/0; done | sort -u)
-
-    for d in $device
-    do
-        if [[ $d == /dev/pts/* ]]
-        then
-            ttyecho -n $d $@
-        fi
-    done
-    # ttyecho -n
-}
-
-# Source the bashrc in the home directory
-source_home()
-{
-    source ~/.bashrc
-}
-
-# Resource all terms opened with the ~/.bashrc
-# useful when a command is updated and needs to be present
-# on all terms
-source_all()
-{
-    send_command_to_all_terminal source ~/.bashrc
-}
-
 # Push a git branch to it's upstream branch on the server
 # If no paramater, the current branch is pushed
 # Otherwise, same behaviour as get_git_branch to retrieve a branch name
@@ -228,22 +188,23 @@ source_all()
 gpush()
 {
     local force=""
-    if [[ "$1" = "-f" ]]; then
+    if [ "$1" = "-f" ]; then
         force="-f"
         shift
-    elif [[ "$2" = "-f" ]]; then
+    elif [ "$2" = "-f" ]; then
         force="-f"
     fi
 
-    local branch=`get_git_branch "$1"`
-    if [[ -z "$branch" ]]
-    then
+    local branch=$(get_git_branch "$1")
+    if [ -z "$branch" ]; then
         echo "No branch found for pattern $1"
         return 1
     fi
     shift
     local remote=$(git remote | head -n 1)
-    cmd="git push ${force} $@ ${remote} $branch:`git rev-parse --symbolic-full-name $branch@{upstream} | sed -r "s#.*/${remote}/##"`"
+    runCmdDbg git push ${force} $@ ${remote} $branch:$(git rev-parse --symbolic-full-name $branch@{upstream} | sed -r "s#.*/${remote}/##")
+
+    # cmd="git push ${force} $@ ${remote} $branch:$(git rev-parse --symbolic-full-name $branch@{upstream} | sed -r "s#.*/${remote}/##")"
     echo $cmd
     eval $cmd
 }
@@ -254,7 +215,7 @@ gpush()
 gcheckout()
 {
     local remote=$(git remote | head -n 1)
-    local branch=`get_git_branch "$1" | sed -r "s#.*${remote}/##"`
+    local branch=$(get_git_branch "$1" | sed -r "s#.*${remote}/##")
     if [[ -z "$branch" ]]
     then
         echo "No branch found for pattern $1"
@@ -430,6 +391,33 @@ find_commits_for_changed_files_old() {
                 print f " in " c
             }'
     done
+}
+
+find_commits_for_changed_files_new() {
+    local possible_branch_origin=$(git log --format="%D" | sed -rn '; /^origin\/sve-dev/{s/,.*$//;p;q}')
+    local branchFrom=${1:-${possible_branch_origin}}
+    local files=$(git status --short -uno | awk '{c = c "," $NF} END { print c }')
+    # files starts with a comma, remove it when passing it to awk
+    git log --name-only --format="__sep__ %h" "${branchFrom}.." | awk -v files="$files" '
+        BEGIN {
+            RS = "__sep__";
+            CSEP = " ";
+            split(files, modF, ",")
+        }
+        NF != 0 {
+            commit=$1;
+            for (i = 2; i <= NF; ++i) {
+                arrF[$i] = arrF[$i] commit CSEP;
+            }
+        }
+        END {
+            for (f in modF) {
+                i = modF[f];
+                if (i)
+                    printf("%s : %s\n", i, arrF[i])
+            }
+        }
+    '
 }
 
 # Get the commit hash to be used when rebasing, for several new commits that are to be rebased

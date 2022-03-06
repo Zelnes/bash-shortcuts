@@ -1,117 +1,27 @@
 #!/bin/bash
 
-# my_path=$(realpath $(dirname ${BASH_SOURCE[0]}))
-# source ${my_path}/bash_functions.sh
-
-PID_F="/tmp/pico_pid"
-
-alias box_device='readlink -f /proc/$(cat ${PID_F})/fd/0'
-
-send_command_box()
-{
-	[ -f ${PID_F} ] && ttyecho -n $(box_device) "$@"
-}
-
-reboot_box_cfe()
-{
-	send_command_box reboot
-	sleep 5
-	for i in {0..10}; do
-		ttyecho -n $(box_device) " "
-		sleep 0.5
-	done
-}
-
-send_reboot_box()
-{
-	send_command_box r n 192.168.1.100 openwrt-broadcom-6836-vmlinux-initramfs-rd.elf  noramdisk 96836.dtb 0x04000000
-}
-
-alias control-center='XDG_CURRENT_DESKTOP=GNOME gnome-control-center &>/dev/null &'
-# alias control-center='unset XDG_CURRENT_DESKTOP; gnome-control-center &>/dev/null &'
-alias ssh-registry='ssh docker@192.168.100.238'
-alias mtail-sdk='mtail -f make_log1.rej -w "==== My Marker MGH ===="'
-alias connect_box='sudo ifconfig box0 {192.168.1.100,down,up}'
-alias findn='find -name'
-alias search-package='dpkg -S '
-
-__do_in_sdk()
-{
-	(
-		git_cd_n # go back to the higher git directory, hopefully it is sdk
-		[ ! -f .current_board ] && {
-			>&2 echo "No current board/target known in $(pwd)"
-			exit 1
-		}
-		"$@"
-	)
-}
-
-_make_verbose()
-{
-	local ret
-	[ -f make_log1.rej ] && cp make_log1.rej make_log1.bak.rej
-	dmake "$@" V=sc -j1 --trace >make_log1.rej
-	ret=$?
-	cp make_log1.rej make_log1.cpy.rej
-	return $ret
-}
-make_verbose()
-{
-	__do_in_sdk _make_verbose "$@"
-}
-
-
-_sdk_docker_make()
-{
-	( git_cd_n && _docker_make "$@"; )
-}
-
-complete -F _sdk_docker_make make_verbose
-
-make_single_package()
-{
-	[ ${1:0:1} = "-" ] || {
-		dmake $@ || exit $?
-		shift
-	}
-	dmake $@ package/install target/install package/index checksum
-}
-
-open-any()
-{
-	xdg-open $@ &>/dev/null &
-}
-
-alias t='set_static_title Test; cd ~/test'
-alias dock='set_static_title Docker; cd /home/mgh/dev/dockerfiles'
-
-sdk() {
-	# If $1 is given, prepend a "-" sign
-	local orig="$1"
-
-	set_static_title "SDK${orig:+ $orig}"
-	cd "/home/mgh/dev/sdk${orig:+-$orig}"
-}
-
-dsb_packages() {
-	# If $1 is given, prepend a "-" sign
-	local orig="$1"
-
-	set_static_title "DSB Packages${orig:+ $orig}"
-	cd "/home/mgh/dev/sdk${orig:+-$orig}-feeds/dsb_packages"
-}
+export HISTDIR="$HOME/bash_history"
 
 # Sets unlimited history size
 export HISTSIZE=""
 export HISTFILESIZE=-1
-export FROMHISTFILE=~/bash_history/full_history
+export FROMHISTFILE="$HISTDIR/full_history"
 export HISTTEMPLATE="hist_template.XXXXXXXX"
+export HISTPURGE="$(mktemp -du)"
 
-if [ "$HISTFILE" = "$HOME/.bash_history" ]; then
-	export HISTFILE=$(mktemp -p ~/bash_history/ "$HISTTEMPLATE")
-fi
-HISTLOCK="$HOME/bash_history/HISTLOCK"
+HISTLOCK="${HISTDIR}/HISTLOCK"
+
+purge_history_dir() {
+	(
+		set -e
+		clean_history_dir
+		mkdir -p "$HISTPURGE"
+		send_command_to_all_terminal cp '$HISTFILE' "$HISTPURGE"
+		rm $(__history_locate_templates)
+		mv "$HISTPURGE"/* "$HISTDIR"
+	)
+	rm -rf "$HISTPURGE"
+}
 
 clean_history() {
 	local from="$1";
@@ -119,6 +29,7 @@ clean_history() {
 	{
 		flock 42
 		awk '{a[$0]=1} END{for(i in a) print i}' "$@" | sort >"${tmp}"
+		# rm "$@" ?
 		mv "${tmp}" "${from}"
 	} 42>"$HISTLOCK"
 }
@@ -127,11 +38,6 @@ __save_history() {
 	{
 		# Flush current history in the file
 		history -w
-		# diff "${FROMHISTFILE}" "${HISTFILE}" \
-		# 	--new-line-format="%L" \
-		# 	--old-line-format=""  \
-		# 	--unchanged-line-format="" >"${FROMHISTFILE}2"
-		# mv "${FROMHISTFILE}2" "${FROMHISTFILE}"
 		clean_history "${FROMHISTFILE}" "${HISTFILE}"
 	}
 }
@@ -147,74 +53,30 @@ __finish_trap() {
 	export HISTFILE="${FROMHISTFILE}"
 	rm "${temp}"
 }
-# Set this function to be called when bash exits
-trap __finish_trap EXIT
-__reload_history
+
+__history_locate_templates() {
+	find "${HISTDIR}" -name "${HISTTEMPLATE//.X*/}.*"
+}
 
 # This command cleans the history directory
 clean_history_dir() {
-	clean_history "${FROMHISTFILE}" $(find -name "${HISTTEMPLATE//.X*/}.*")
+	clean_history "${FROMHISTFILE}" $(__history_locate_templates)
 }
 
-# Will launch the given command for the current board
-__current_board_command()
-{
-	local cmd="$1"; shift
-	local args="$@"
-	(
-		git_cd_n # go back to the higher git directory, hopefully it is sdk
-		[ ! -f .current_board ] && {
-			>&2 echo "No current board/target known in $(pwd)"
-			exit 1
-		}
-		local target=$(cat .current_board)-$(cat .current_config)
-		echo "Running : dmake ${target}${cmd} ${args}"
-		dmake ${target}${cmd} "${args}"
-	)
-}
+__init_history() {
+	mkdir -p "${HISTDIR}"
+	touch "${FROMHISTFILE}"
 
-# Will launch the make menuconfig for the current target
-menuconfig()
-{
-	__current_board_command "-menuconfig"
-}
-
-# Will compile the current target
-compile()
-{
-	__current_board_command "" -j10 "$@"
-}
-
-# Compile anything
-compilea()
-{
-	__current_board_command "$@"
-}
-
-flash_image()
-{
-	local img="$1" secure
-	local ip="${IP:-192.168.1.1}"
-
-	[ -f "${img}" ] || {
-		[[ "${img}" =~ ^/tftpboot ]] || img="/tftpboot/${img}"
-		[ -f "${img}" ] || {
-			1>&2 echo "No image ${img} found"
-			return 1
-		}
-	}
-	echo ${img}
-	if [[ "${img}" =~ .*secure ]]; then
-		>&2 echo "Attention : the image '${img}' contains 'secure' in its name"
-		>&2 echo "Are you sure you want to flash it ? (y/n)"
-		read secure
-		[ "${secure}" != "y" ] && {
-			echo "Aborting"
-			return 0
-		}
+	if [ "$HISTFILE" = "$HOME/.bash_history" ] || [ -z "$HISTFILE" ]; then
+		HISTFILE=$(mktemp -p "$HISTDIR" "$HISTTEMPLATE")
 	fi
-	curl -o /dev/null -F"filename=@${img}" "http://$ip/upload.cgi"
+	export HISTFILE
+
+	# Set this function to be called when bash exits
+	trap __finish_trap EXIT
+	__reload_history
 }
+__init_history
 
 screen_add_right() {
 	xrandr --output DP-1 --mode 1920x1200 --pos 1920x0
@@ -335,26 +197,3 @@ _wifi_known() {
 	COMPREPLY=( $(printf "%q\n" $toot))
 }
 complete -F _wifi_known enable_wifi
-
-alias refresh='xset dpms force suspend'
-
-mgh_picocom_connect()
-{
-	local dev=$1
-	[[ "$dev" =~ ^[0-9]+$ ]] && dev=/dev/ttyUSB${dev}
-	[ -e "$dev" ] && picocom -b 115200 $dev
-}
-
-mgh_picocom() {
-	local i
-
-	set_static_title "Picocom BOX"
-	# Will try to connect to serial port on /dev/ttyUSB0 with a baudrate of 115200
-	if [[ $# -eq 1 ]]; then
-		mgh_picocom_connect "$1"
-	else
-		for i in /dev/ttyUSB*; do
-			mgh_picocom_connect "$i" && break
-		done
-	fi
-}
