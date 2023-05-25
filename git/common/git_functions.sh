@@ -132,7 +132,7 @@ alias glog='git log --oneline -n '
 # Prints git status with short output (by default)
 # Can be completed with 'git status' other arguments
 gst() {
-    git -c color.status=always status -s | awk '{ print NR "\t" $0}'
+    git -c color.status=always status -s "$@" | awk '{ print NR "\t" $0}'
 }
 
 get_git_ticket_ref()
