@@ -66,3 +66,35 @@ exec_always 'test "$(xrandr | grep -wc connected)" -eq 3 && xrandr --output DP-1
 
 # Mettre la fenetre de PKI en floating mode dès son apparition
 for_window [title="Se connecter au dispositif de sécurité"] floating enable
+for_window [class="VirtualBox" instance="VirtualBox" title=".* - Settings"] floating enable
+
+for_window [class="vlc" instance="vlc" title="rtsp.*"] floating enable
+for_window [title="RTSP.*"] floating enable
+
+# Only enable outer gaps when there is exactly one window or split container on the workspace.
+# smart_gaps inverse_outer
+
+#Needed for i3-gaps
+# #hide_edge_borders both
+# for_window [class="^.*"] border pixel 2
+# gaps inner 5px
+# gaps outer 5px
+# Configure 5px of space between windows and to the screen edges.
+gaps inner 1px
+
+# Configure an additional 5px of extra space to the screen edges,
+# for a total gap of 10px to the screen edges, and 5px between windows.
+gaps outer 1px
+
+# Color settings
+set $bg-color 	         #2f343f
+set $inactive-bg-color   #2f343f
+set $text-color          #f3f4f5
+set $inactive-text-color #676E7D
+set $urgent-bg-color     #E53935
+
+#                       border              background         text                 indicator
+client.focused          $bg-color           $bg-color          $text-color          #424242
+client.unfocused        $inactive-bg-color  $inactive-bg-color $inactive-text-color #424242
+client.focused_inactive $inactive-bg-color  $inactive-bg-color $inactive-text-color #424242
+client.urgent           $urgent-bg-color    $urgent-bg-color   $text-color          #424242
