@@ -13,6 +13,7 @@ BACKGROUND_FILE=$(shell realpath ./images/background.png)
 .PHONY: $(current)/prereq $(current)/common $(current)/install $(current)/work $(current)/home
 
 PREREQ_LIST+=scrot
+PREREQ_LIST+=imagemagick
 prereq:
 	@$(foreach pre,$(PREREQ_LIST),$(if $(shell which $(pre)),,$(error "You need to install '$(pre)' before")))
 	@mkdir -p $(SCREEN_DIR)
@@ -52,6 +53,7 @@ install: replace-values
 		mv "$(TARGET_CONF)" "$(TARGET_BACK)"; \
 	}; :
 	$(QUIET) ln -nsf "$$(realpath $(TMP_FILE))" "$(TARGET_CONF)"
+	$(QUIET) ln -nsf "$$(realpath ./bin)"  "$${HOME}/.config/i3/"
 	$(QUIET) echo "Current config is now installed under $(TARGET_CONF)"
 
 work home:
