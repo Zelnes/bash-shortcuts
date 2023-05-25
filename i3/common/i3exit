@@ -5,14 +5,14 @@ current_path=$(dirname $(realpath ${BASH_SOURCE[0]}))
 lock() {
     # i3lock -c 151515
     # i3lock -t -i "${_FILE}"
-	/home/mgh/lock.sh
+	~/.config/i3/bin/lock.sh "${_FILE}"
 }
 
 _FILE="${1}"; shift
 
 save_layout() {
     local wkspaces=$(i3-msg -t get_workspaces | jq '.[]|.num')
-    local i DIR="/home/mgh/workspace_auto_save"
+    local i DIR="${HOME}/workspace_auto_save"
     rm -rf "$DIR"
     mkdir -p "$DIR"
     for i in $wkspaces; do
@@ -21,7 +21,7 @@ save_layout() {
     done
 }
 
-save_layout
+# save_layout
 
 case "$1" in
     lock)
