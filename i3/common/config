@@ -38,6 +38,9 @@ bindsym $mod+Shift+A kill
 
 # start dmenu (a program launcher)
 bindsym $mod+d exec dmenu_run
+
+# shortcut for exec --no-startup-id 
+set $ex_nid exec --no-startup-id
 # There also is the (new) i3-dmenu-desktop which only displays applications
 # shipping a .desktop file. It is a wrapper around dmenu, so you need that
 # installed.
@@ -178,8 +181,6 @@ bar {
     position top
 }
 
-bindsym Mod4+l exec i3lock -c a1a1de
-
 set $mode_system System (l) lock, (e) logout, (s) suspend, (h) hibernate, (r) reboot, (Shift+s) shutdown
 set $mode_system_exit __TO_REPLACE__EXIT
 mode "$mode_system" {
@@ -194,23 +195,33 @@ mode "$mode_system" {
     bindsym Return mode "default"
     bindsym Escape mode "default"
 }
+
+bindsym Mod4+l $ex_nid $mode_system_exit lock
 bindsym $mod+Print mode "$mode_system"
 
 # Bind Mute/Unmute
 bindsym Ctrl+Shift+F1 exec amixer set Master toggle
+bindsym XF86AudioMute exec amixer set Master toggle
 # Bind Volume +
 bindsym Ctrl+Shift+F3 exec amixer set Master 5%+
+bindsym XF86AudioRaiseVolume exec amixer set Master 5%+
 # Bind Volume -
 bindsym Ctrl+Shift+F2 exec amixer set Master 5%-
+bindsym XF86AudioLowerVolume exec amixer set Master 5%-
+
+set $playercontrol /home/mgh/.config/i3/bin/playerctl.sh
+bindsym XF86AudioPlay $ex_nid "$playercontrol play-pause"
+bindsym XF86AudioPause $ex_nid "$playercontrol pause"
+bindsym XF86AudioNext $ex_nid "$playercontrol next"
+bindsym XF86AudioPrev $ex_nid "$playercontrol previous"
 
 bindsym $mod+n exec i3-input -F 'rename workspace to "%s"' -P 'New name: '
 # Move the current workspace to the next output
 # (effectively toggles when you only have two outputs)
-bindsym $mod+x move workspace to output right
+bindsym $mod+Ctrl+Up move workspace to output up
+bindsym $mod+Ctrl+Right move workspace to output right
 
-# bindsym Print exec scrot -s -e 'mv $f /home/mgh/Images/Screenshots/'
-# bindsym Print exec scrot '%Y-%m-%d-%T_$wx$h_scrot.png' -e 'mv $f __TO_REPLACE__SCREENSHOT'
-
+# apt install imagemagick
 set $import_file /home/mgh/Images/Screenshots/$(date +"%Y%m%d-%H%M%S").png
 bindsym --release Shift+Print exec import $import_file
 bindsym --release Print exec import -window $(xdotool getwindowfocus) $import_file
@@ -220,10 +231,10 @@ bindsym --release Print exec import -window $(xdotool getwindowfocus) $import_fi
 exec --no-startup-id __TO_REPLACE__COMMON_BIN/enable_touchpad_tapp.sh
 
 # Make the currently focused window a scratchpad
-# bindsym $mod+Shift+minus move scratchpad
+bindsym $mod+Shift+minus move scratchpad
 
 # Show the first scratchpad window
-# bindsym $mod+minus scratchpad show
+bindsym $mod+minus scratchpad show
 
 # Sticks the windows
 bindsym $mod+w sticky toggle

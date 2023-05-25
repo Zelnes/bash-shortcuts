@@ -1,25 +1,25 @@
-set $spotify __TO_REPLACE__COMMON_BIN/sp
-bindsym Ctrl+F1 exec $spotify play
-bindsym XF86AudioPause exec $spotify play
-bindsym XF86AudioPlay exec $spotify play
-bindsym Ctrl+F2 exec $spotify prev
-bindsym XF86AudioPrev exec $spotify prev
-bindsym Ctrl+F3 exec $spotify next
-bindsym XF86AudioNext exec $spotify next
+# set $spotify __TO_REPLACE__COMMON_BIN/sp
+# bindsym Ctrl+F1 exec $spotify play
+# bindsym XF86AudioPause exec $spotify play
+# bindsym XF86AudioPlay exec $spotify play
+# bindsym Ctrl+F2 exec $spotify prev
+# bindsym XF86AudioPrev exec $spotify prev
+# bindsym Ctrl+F3 exec $spotify next
+# bindsym XF86AudioNext exec $spotify next
 
-set $volume __TO_REPLACE__COMMON_BIN/updateVolumeApp
+# set $volume __TO_REPLACE__COMMON_BIN/updateVolumeApp
 # Bind Mute/Unmute
-bindsym XF86AudioMute exec $volume m Spotify
+# bindsym XF86AudioMute exec $volume m Spotify
 # Bind Volume +
-bindsym XF86AudioRaiseVolume exec $volume + Spotify
+# bindsym XF86AudioRaiseVolume exec $volume + Spotify
 # Bind Volume -
-bindsym XF86AudioLowerVolume exec $volume - Spotify
+# bindsym XF86AudioLowerVolume exec $volume - Spotify
 
+# ; append_layout /home/mgh/workspace3
 exec --no-startup-id i3-msg '\
-	workspace 3; append_layout /home/mgh/workspace3;\
+	workspace 3;\
 	exec spotify;\
-	exec skypeforlinux;\
-	exec pidgin;\
+	exec teams;\
 	rename workspace to "3:Mess";\
 '
 
@@ -30,8 +30,8 @@ exec --no-startup-id i3-msg '\
 '
 exec --no-startup-id i3-msg '\
 	workspace 2;\
-	exec subl;\
-	rename workspace to "2:Subl";\
+	exec code;\
+	rename workspace to "2:code";\
 '
 
 exec --no-startup-id i3-msg '\
@@ -49,17 +49,20 @@ exec --no-startup-id i3-msg '\
 exec --no-startup-id i3-msg '\
 	workspace 7;\
 	exec blueman-manager;\
-	exec --no-startup-id sudo wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -i wlp4s0;\
+	exec sudo wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -i wlp0s20f3;\
 	exec sudo wpa_gui;\
 	exec pavucontrol;\
 	rename workspace to "7:Ctrl";\
 '
 
 exec --no-startup-id i3-msg '\
-	workspace 6;\
-	exec atom;\
-	rename workspace to "6:Atom";\
+	workspace 9;\
+	exec virtualbox;\
+	rename workspace to "9:VMs";\
 '
 
 # Load the 3 screen setup
 exec_always 'test "$(xrandr | grep -wc connected)" -eq 3 && xrandr --output DP-1 --mode 1920x1200 --pos 0x0 --output DP-4 --mode 1920x1080 --pos 1920x0 --output DP-3 --mode 1920x1200 --pos 3840x0'
+
+# Mettre la fenetre de PKI en floating mode dès son apparition
+for_window [title="Se connecter au dispositif de sécurité"] floating enable
