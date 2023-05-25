@@ -53,6 +53,7 @@
 	compare = difftool --dir-diff --tool=meld
 	lg = log --pretty=format:'%Cred%h%Creset %C(bold blue)%an%Creset - %Cgreen%cr%Creset -%C(yellow)%d%Creset %s' --abbrev-commit
 	lg2 = log --pretty=format:'- %s' --abbrev-commit
+	bclean = "!f() { git branch --merged ${1-master} | grep -v \" ${1-master}$\" | xargs -r git branch -d; }; f"
 
 [pager]
 	diff = "sed -r ':a s/([[:blank:]+-]*)\\t/\\1◦◦/; t a' | less"
