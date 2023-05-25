@@ -61,7 +61,11 @@ toggle_sink_pause()
 	fi
 	# [ "$pause" -eq 1 ] && { play_sound /usr/share/sounds/freedesktop/stereo/dialog-information.oga; sleep 0.2; }
 	pacmd suspend-sink "$sink_id" "$pause"
-	[ "$pause" -eq 1 ] || play_sound /usr/share/sounds/gnome/default/alerts/drip.ogg
+	if [ "$pause" -eq 0 ]; then
+		set_default_sink_bluez
+		set_default_source_bluez
+		play_sound /usr/share/sounds/gnome/default/alerts/drip.ogg
+	fi
 }
 
 toggle_bluez() {
