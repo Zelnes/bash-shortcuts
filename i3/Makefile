@@ -13,7 +13,7 @@ BACKGROUND_FILE=$(shell realpath ./images/background.png)
 .PHONY: $(current)/prereq $(current)/common $(current)/install $(current)/work $(current)/home
 
 PREREQ_LIST+=scrot
-PREREQ_LIST+=imagemagick
+# PREREQ_LIST+=imagemagick
 prereq:
 	@$(foreach pre,$(PREREQ_LIST),$(if $(shell which $(pre)),,$(error "You need to install '$(pre)' before")))
 	@mkdir -p $(SCREEN_DIR)
