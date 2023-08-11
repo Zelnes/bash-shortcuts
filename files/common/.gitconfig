@@ -1,7 +1,7 @@
 [core]
 #	editor = 'subl' --wait
 	editor = code --wait
-	excludesfile = /home/mgh/.gitignore
+	excludesfile = ~/.gitignore
 #	hooksPath = /home/mgh/gitHooks/
 
 [alias]
