@@ -1,6 +1,3 @@
-[user]
-	name = Mehdi GHESH
-	email = mehdi.ghesh@atos.net
 [core]
 #	editor = 'subl' --wait
 	editor = code --wait

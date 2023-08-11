@@ -3,7 +3,6 @@
 . "$(realpath $(dirname ${BASH_SOURCE[0]}))/pulse_routines"
 
 toggle_connection() {
-	echo "Todo later"
 	toggle_bluez
 }
 
@@ -15,6 +14,8 @@ set_profile() {
 	# [ "$real_prof" != "$curr_prof" ] &&
 	pacmd set-card-profile $(__pa_get_bluez_num cards) "$real_prof"
 	client_id_to_sink any $(__pa_get_bluez_num sinks)
+	logger "Switched Jabra headset to HFP profile"
+
 }
 
 vpn_wg() {

@@ -47,7 +47,8 @@ replace-values:
 	$(QUIET) $(call replace-in-file,$(TMP_FILE),COMMON_BIN,$(shell realpath $(TOPDIR)/bin/common))
 
 install: replace-values
-	$(QUIET) [ -h "$(TARGET_CONF)" ] && rm "$(TARGET_CONF)"; :
+	$(QUIET) [ ! -h "$(TARGET_CONF)" ] || rm "$(TARGET_CONF)"
+	$(QUIET) mkdir -p "$$(dirname "$(TARGET_CONF)")"
 	$(QUIET) [ -f "$(TARGET_CONF)" ] && { \
 		echo "$(TARGET_CONF) exists. Saving it to $(TARGET_BACK)"; \
 		mv "$(TARGET_CONF)" "$(TARGET_BACK)"; \

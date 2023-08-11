@@ -96,11 +96,6 @@ client_id_to_sink()
 	done
 }
 
-FIREFOX_SINK="null-firefox"
-FIREFOX_SINK_DESC="Firefox_Virtual_Sink"
-SPOTIFY_SINK="null-spotify"
-SPOTIFY_SINK_DESC="Spotify_Virtual_Sink"
-
 add_null_module_and_link_app() {
 	local client="$1" sink_dst="$2" sink_name="$3" sink_desc="${4:-${sink_name}_Virtual_Sink}"
 	# Test if sink_name already exists
@@ -132,6 +127,11 @@ add_null_module_and_link_app() {
 }
 
 main_PA() {
+	FIREFOX_SINK="null-firefox"
+	FIREFOX_SINK_DESC="Firefox_Virtual_Sink"
+	SPOTIFY_SINK="null-spotify"
+	SPOTIFY_SINK_DESC="Spotify_Virtual_Sink"
+
 	add_null_module_and_link_app firefox-esr bluez "${FIREFOX_SINK}" "${FIREFOX_SINK_DESC}"
 	add_null_module_and_link_app spotify bluez "${SPOTIFY_SINK}" "${SPOTIFY_SINK_DESC}"
 }

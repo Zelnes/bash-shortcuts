@@ -70,16 +70,14 @@ alias findn='find -name'
 alias search-package='dpkg -S '
 
 __do_in_sdk()
-{
-	(
-		git_cd_n # go back to the higher git directory, hopefully it is sdk
-		[ ! -f .current_board ] && {
-			>&2 echo "No current board/target known in $(pwd)"
-			exit 1
-		}
-		"$@"
-	)
-}
+(
+	git_cd_n # go back to the higher git directory, hopefully it is sdk
+	[ ! -f .current_board ] && {
+		>&2 echo "No current board/target known in $(pwd)"
+		exit 1
+	}
+	"$@"
+)
 
 _make_verbose()
 {

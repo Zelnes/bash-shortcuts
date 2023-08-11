@@ -89,6 +89,9 @@ function update_PS1()
     get_svnPS1
     my_quiltPS1="$(get_quiltPS1)"
 
+    # Write history to file
+    history -w
+
     # _my_userPS1=$(whoami)
     # my_userPS1=$(color_text "[${_my_userPS1}]" 83)
 
@@ -313,3 +316,9 @@ runCmdDbg() (
     set -x
     "$@"
 )
+
+mclip() {
+    local selection="${1:-clipboard}"
+    xclip -selection "$selection"
+    xclip -o -selection "$selection"
+}

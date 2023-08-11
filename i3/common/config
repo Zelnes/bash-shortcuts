@@ -215,14 +215,16 @@ bindsym XF86AudioPause $ex_nid "$playercontrol pause"
 bindsym XF86AudioNext $ex_nid "$playercontrol next"
 bindsym XF86AudioPrev $ex_nid "$playercontrol previous"
 
+# Rename workspace
 bindsym $mod+n exec i3-input -F 'rename workspace to "%s"' -P 'New name: '
+
 # Move the current workspace to the next output
 # (effectively toggles when you only have two outputs)
 bindsym $mod+Ctrl+Up move workspace to output up
 bindsym $mod+Ctrl+Right move workspace to output right
 
 # apt install imagemagick
-set $import_file /home/mgh/Images/Screenshots/$(date +"%Y%m%d-%H%M%S").png
+set $import_file ${HOME}/Images/Screenshots/$(date +"%Y%m%d-%H%M%S").png
 bindsym --release Shift+Print exec import $import_file
 bindsym --release Print exec import -window $(xdotool getwindowfocus) $import_file
 
@@ -238,3 +240,6 @@ bindsym $mod+minus scratchpad show
 
 # Sticks the windows
 bindsym $mod+w sticky toggle
+
+# Focus on the lastest urgent window
+bindsym $mod+u [urgent=latest] focus
