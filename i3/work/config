@@ -17,21 +17,40 @@
 
 # ; append_layout /home/mgh/workspace3
 exec --no-startup-id i3-msg '\
-	workspace 3;\
-	exec spotify;\
-	exec teams;\
-	rename workspace to "3:Mess";\
-'
-
-exec --no-startup-id i3-msg '\
 	workspace 1; \
 	exec i3-sensible-terminal; \
 	rename workspace to "1:Terms" \
 '
+
 exec --no-startup-id i3-msg '\
 	workspace 2;\
 	exec code;\
 	rename workspace to "2:code";\
+'
+
+exec --no-startup-id i3-msg '\
+	workspace 3;\
+	exec slack;\
+	exec zoom;\
+exec /home/mehdighesh/.joplin/Joplin.AppImage;\
+	exec rambox;\
+	rename workspace to "3:Mess";\
+'
+
+exec --no-startup-id i3-msg '\
+	workspace 5;\
+	exec firefox;\
+	exec google-chrome;\
+	rename workspace to "5:Nav";\
+'
+
+exec --no-startup-id i3-msg '\
+	workspace 7;\
+	exec blueman-manager;\
+	exec pavucontrol;\
+	exec arandr;\
+	exec XDG_CURRENT_DESKTOP=GNOME gnome-control-center;\
+	rename workspace to "7:Ctrl";\
 '
 
 exec --no-startup-id i3-msg '\
@@ -40,29 +59,11 @@ exec --no-startup-id i3-msg '\
 	rename workspace to "8:Mails";\
 '
 
-exec --no-startup-id i3-msg '\
-	workspace 5;\
-	exec firefox;\
-	rename workspace to "5:Nav";\
-'
-
-exec --no-startup-id i3-msg '\
-	workspace 7;\
-	exec blueman-manager;\
-	exec sudo wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -i wlp0s20f3;\
-	exec sudo wpa_gui;\
-	exec pavucontrol;\
-	rename workspace to "7:Ctrl";\
-'
-
-exec --no-startup-id i3-msg '\
-	workspace 9;\
-	exec virtualbox;\
-	rename workspace to "9:VMs";\
-'
+# Execute Network Manager Applet, to see it in traybar
+$ex_nid nm-applet
 
 # Load the 3 screen setup
-exec_always 'test "$(xrandr | grep -wc connected)" -eq 3 && xrandr --output DP-1 --mode 1920x1200 --pos 0x0 --output DP-4 --mode 1920x1080 --pos 1920x0 --output DP-3 --mode 1920x1200 --pos 3840x0'
+# exec_always 'test "$(xrandr | grep -wc connected)" -eq 3 && xrandr --output DP-1 --mode 1920x1200 --pos 0x0 --output DP-4 --mode 1920x1080 --pos 1920x0 --output DP-3 --mode 1920x1200 --pos 3840x0'
 
 # Mettre la fenetre de PKI en floating mode dès son apparition
 for_window [title="Se connecter au dispositif de sécurité"] floating enable
@@ -70,6 +71,31 @@ for_window [class="VirtualBox" instance="VirtualBox" title=".* - Settings"] floa
 
 for_window [class="vlc" instance="vlc" title="rtsp.*"] floating enable
 for_window [title="RTSP.*"] floating enable
+
+for_window [class="zoom"] floating enable
+for_window [class="Spotify"] floating enable
+for_window [title="Calculator"] floating enable
+for_window [title="galculator"] floating enable
+for_window [title="Float"] floating enable
+for_window [title="Thunderbird Preferences"] floating enable
+for_window [title="Firefox Preferences"] floating enable
+
+# for_window [class="Slack"] floating enable
+# for_window [class="Slack"] move window to scratchpad
+# bindsym $mod+Shift+m [class="Slack"] scratchpad show
+
+for_window [class="Joplin"] floating enable
+for_window [class="Joplin"] move window to scratchpad
+bindsym $mod+Shift+n [class="Joplin"] scratchpad show
+
+for_window [title="Zoom - Free Account"] move window to scratchpad
+
+for_window [class="flameshot"] floating enable
+
+# for_window [class="rambox"] floating enable
+# for_window [class="rambox"] move window to scratchpad
+# bindsym $mod+Shift+w [class="rambox"] scratchpad show
+
 
 # Only enable outer gaps when there is exactly one window or split container on the workspace.
 # smart_gaps inverse_outer

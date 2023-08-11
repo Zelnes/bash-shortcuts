@@ -179,6 +179,7 @@ bindsym $mod+r mode "resize"
 bar {
     status_command __TO_REPLACE__STATUS
     position top
+tray_output primary
 }
 
 set $mode_system System (l) lock, (e) logout, (s) suspend, (h) hibernate, (r) reboot, (Shift+s) shutdown
@@ -209,8 +210,9 @@ bindsym XF86AudioRaiseVolume exec amixer set Master 5%+
 bindsym Ctrl+Shift+F2 exec amixer set Master 5%-
 bindsym XF86AudioLowerVolume exec amixer set Master 5%-
 
-set $playercontrol /home/mgh/.config/i3/bin/playerctl.sh
+set $playercontrol ${HOME}/.config/i3/bin/playerctl.sh
 bindsym XF86AudioPlay $ex_nid "$playercontrol play-pause"
+bindsym $mod+p $ex_nid "$playercontrol play-pause"
 bindsym XF86AudioPause $ex_nid "$playercontrol pause"
 bindsym XF86AudioNext $ex_nid "$playercontrol next"
 bindsym XF86AudioPrev $ex_nid "$playercontrol previous"
@@ -233,13 +235,15 @@ bindsym --release Print exec import -window $(xdotool getwindowfocus) $import_fi
 exec --no-startup-id __TO_REPLACE__COMMON_BIN/enable_touchpad_tapp.sh
 
 # Make the currently focused window a scratchpad
-bindsym $mod+Shift+minus move scratchpad
+bindsym $mod+Shift+KP_Subtract move scratchpad
 
 # Show the first scratchpad window
-bindsym $mod+minus scratchpad show
+bindsym $mod+KP_Subtract scratchpad show
 
 # Sticks the windows
 bindsym $mod+w sticky toggle
 
 # Focus on the lastest urgent window
 bindsym $mod+u [urgent=latest] focus
+
+bindsym $mod+Tab workspace back_and_forth
